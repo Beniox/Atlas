@@ -1,7 +1,8 @@
 {
     "scripts": {
         "lint": "eslint frontend",
-        "dev": "block run"
+        "dev": "block run",
+        "build": "block release"
     },
     "dependencies": {
         "@airtable/blocks": "1.8.0",
