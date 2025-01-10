@@ -3,3 +3,4 @@
 /build
 # Project exclude paths
 /.tmp/
+remote.json
