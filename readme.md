@@ -2,7 +2,7 @@
 
 This project integrates Airtable with Leaflet using openstreetmap.
 
-![](.\media\airtable.png)
+![](media\airtable.png)
 
 ## Features
 - Displays a map using Leaflet.js
@@ -19,13 +19,13 @@ This project integrates Airtable with Leaflet using openstreetmap.
 
 
 
-## How to run this app
+## How to add this extension to your base
 
-1. Create a new base using the
-   [Art Gallery Management template](https://airtable.com/templates/creative/expAZgezgpfCF8wVH/art-gallery-management).
+![How to add this block to your base](media/installing.png)
 
-2. Create a new app in your new base (see
-   [Create a new app](https://airtable.com/developers/blocks/guides/hello-world-tutorial#create-a-new-app)),
-   selecting "Print records" as your template.
-
-3. From the root of your new app, run `block run`.
+1. Click 'Add an extension'
+2. Choose 'Build a custom extension'
+3. Choose 'Remix from GitHub'in the 'Start from an example' section
+4. Paste `https://github.com/Beniox/leaflet-airtable` as the GitHub repository
+5. Click 'Create Extension'
+6. From there, follow [Airtable's SDK instructions](https://airtable.com/developers/blocks/guides/getting-started) to release the Block into your base
