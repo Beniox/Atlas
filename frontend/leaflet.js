@@ -60,7 +60,15 @@ function Leaflet() {
                 const icon = record.getCellValue(iconFieldId) || "map"
                 const iconSize = record.getCellValue(iconSizeFieldId) || 32;
 
-                const color = airtableColor ? colorUtils.getHexForColor(airtableColor.color) : '#000000';
+                let color = 'black';
+                if(airtableColor) {
+                    if(colorUtils.getHexForColor(airtableColor)) {
+                        color = colorUtils.getHexForColor(airtableColor);
+                    }
+                    else if (CSS.supports('color', airtableColor)) {
+                        color = airtableColor;
+                    }
+                }
 
                 if (lat && lon) {
                     // Create a custom Leaflet divIcon
@@ -73,7 +81,7 @@ function Leaflet() {
             });
         }
 
-    }, [records, latitudeFieldId, longitudeFieldId, nameFieldId]);
+    }, [records, latitudeFieldId, longitudeFieldId, nameFieldId, colorFieldId, iconFieldId, iconSizeFieldId]);
 
     return (
         <Box display="flex" flexDirection="column" padding={3}>
@@ -83,5 +91,7 @@ function Leaflet() {
         </Box>
     );
 }
+
+
 
 export default Leaflet;
