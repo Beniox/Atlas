@@ -4,11 +4,11 @@ import {
     Box,
     useSettingsButton,
 } from '@airtable/blocks/ui';
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import 'leaflet/dist/leaflet.css'; // Import Leaflet's CSS for proper rendering
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'boxicons'
+// import 'boxicons'
 import Settings from "./settings";
 import {GlobalConfigKeys} from "./settings";
 import './style.css'
@@ -35,6 +35,20 @@ function App() {
     if (!tableId || !latitudeFieldId || !longitudeFieldId || !nameFieldId || !colorFieldId || !boxIconFieldId || !iconSizeFieldId) {
         return <Settings/>
     }
+
+    useEffect(() => {
+        // Dynamically add Boxicons CDN to the head tag
+        const link = document.createElement("link");
+        link.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+
+        // Cleanup when the component is unmounted
+        return () => {
+            document.head.removeChild(link);
+        };
+    }, []);
+
 
     if (isShowingSettings) {
         return <Settings/>

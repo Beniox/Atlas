@@ -2,6 +2,8 @@
 
 This project integrates Airtable with Leaflet using openstreetmap.
 
+![](.\media\airtable.png)
+
 ## Features
 - Displays a map using Leaflet.js
 - Fetches data from Airtable, including latitude, longitude, name, color, icon type, and icon size

@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import 'boxicons/css/boxicons.min.css';
 /**
  * Create a custom Leaflet icon using a box icon and a specific color
  * @param {string} icon - The name of the box icon.
@@ -9,11 +10,9 @@ import L from 'leaflet';
 export function createCustomIcon(icon, color, iconSize) {
     return L.divIcon({
         html: `
-            <box-icon 
-                type="solid" 
-                name="${icon}" 
-                color="${color}" 
-                style="width:${iconSize}px; height:${iconSize}px;"
+            <i
+                class="bx bxs-${icon}"
+                style="width:${iconSize}px; height:${iconSize}px;color:${color};font-size:${iconSize}px"
             ></box-icon>
         `,
         iconSize: [iconSize, iconSize],
