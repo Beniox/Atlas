@@ -2,7 +2,7 @@
 
 This project integrates Airtable with Leaflet using openstreetmap.
 
-![](media\airtable.png)
+![screenshot](media/airtable.png)
 
 ## Features
 - Displays a map using Leaflet.js
