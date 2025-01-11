@@ -22,9 +22,20 @@ This project integrates Airtable with Leaflet using openstreetmap.
 
 ![How to add this block to your base](media/installing.png)
 
-1. Click 'Add an extension'
-2. Choose 'Build a custom extension'
-3. Choose 'Remix from GitHub'in the 'Start from an example' section
+### Requirenments
+- [Node.js](https://nodejs.org/en/download) - You need to have it installed
+
+### Install
+
+1. Click `Add an extension`
+2. Choose `Build a custom extension`
+3. Choose `Remix from GitHub'in the 'Start from an example` section
 4. Paste `https://github.com/Beniox/leaflet-airtable` as the GitHub repository
-5. Click 'Create Extension'
-6. From there, follow [Airtable's SDK instructions](https://airtable.com/developers/blocks/guides/getting-started) to release the Block into your base
+5. Click `Create Extension`
+6. Install the CLI: `npm install -g @airtable/blocks-cli`
+7. In the folder where it should be installed to (only temporarily) open a terminal
+8. Copy the given command starting with `block init ...`
+9. Create an [API token](https://airtable.com/create/tokens) `scope:manage, Access:name` of your base
+10. Move in the created folder with the terminal
+11. Enter `npm run build`
+12. It should now ba available in your base. If an error happens, check the api token
