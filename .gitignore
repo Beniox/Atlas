@@ -4,4 +4,4 @@
 # Project exclude paths
 /.tmp/
 .idea/
-.block/
+.block/remote.json
