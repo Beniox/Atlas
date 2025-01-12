@@ -15,6 +15,7 @@ This project integrates Airtable with Leaflet using openstreetmap.
 - [Airtable Blocks](https://airtable.com/developers/blocks) - A platform for creating custom apps and integrations inside Airtable
 - [React](https://react.dev/) - A JavaScript library for building user interfaces
 - [Boxicons](https://boxicons.com/) - Icon library
+- [Leaflet.Fullscreen](https://github.com/Leaflet/Leaflet.fullscreen) - Fullscreen plugin for leaflet
 
 
 
@@ -39,3 +40,11 @@ This project integrates Airtable with Leaflet using openstreetmap.
 10. Move in the created folder with the terminal
 11. Enter `npm run build`
 12. It should now ba available in your base. If an error happens, check the api token
+
+
+
+# TODO:
+- [ ] select which items should be display
+- [ ] print map
+- [ ] if icon size is 0 dont display it
+- [ ] colors not working as intended

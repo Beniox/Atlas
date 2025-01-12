@@ -9,6 +9,8 @@ import React, {useEffect, useRef} from 'react';
 import L from 'leaflet';
 import {createCustomIcon} from "./CustomIcon";
 import {GlobalConfigKeys} from "./settings";
+import 'leaflet-fullscreen';
+import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 
 function Leaflet() {
     const base = useBase();
@@ -31,15 +33,19 @@ function Leaflet() {
 
     useEffect(() => {
         // Initialize the map on first render
-        const map = L.map('map').setView([51.505, -0.09], 13); // Default center
-        mapRef.current = map;
+        const map = L.map('map',{fullscreenControl: true}).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
+        L.easyPrint({
+            title: 'Print Map',
+            sizeModes: ['A4Portrait', 'A4Landscape']
+        }).addTo(map);
 
+        mapRef.current = map;
         return () => {
             map.remove();
         };
