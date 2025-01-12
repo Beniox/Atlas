@@ -23,10 +23,11 @@ This project integrates Airtable with Leaflet using openstreetmap.
 
 ![How to add this block to your base](media/installing.png)
 
-### Requirenments
+## Requirenments
 - [Node.js](https://nodejs.org/en/download) - You need to have it installed
+- [git](https://git-scm.com/) - For updating the extension
 
-### Install
+## Install
 
 1. Click `Add an extension`
 2. Choose `Build a custom extension`
@@ -38,13 +39,19 @@ This project integrates Airtable with Leaflet using openstreetmap.
 8. Copy the given command starting with `block init ...`
 9. Create an [API token](https://airtable.com/create/tokens) `scope:manage, Access:name` of your base
 10. Move in the created folder with the terminal
-11. Enter `npm run build`
+11. Enter `npm run init`
 12. It should now ba available in your base. If an error happens, check the api token
 
+## Update
+
+To update the extension open a terminal and type `npm run update`. This will fetch the latest version from this repo and overrides your local version. 
+It then uploads it to your Airtable base.
 
 
-# TODO:
+## TODO:
 - [ ] select which items should be display
 - [ ] print map
 - [ ] if icon size is 0 dont display it
 - [ ] colors not working as intended
+
+
