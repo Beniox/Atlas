@@ -2,7 +2,9 @@
     "scripts": {
         "lint": "eslint frontend",
         "dev": "block run",
-        "build": "block release"
+        "build": "block release",
+        "init" : "git init && git add . && git remote add upstream https://github.com/Beniox/leaflet-airtable.git && npm run update",
+        "update": "git fetch upstream && git merge upstream/master && block release"
     },
     "dependencies": {
         "@airtable/blocks": "1.8.0",
@@ -10,6 +12,7 @@
         "leaflet": "^1.9.4",
         "leaflet-defaulticon-compatibility": "^0.1.2",
         "leaflet-fullscreen": "^1.0.2",
+        "leaflet.markercluster": "^1.5.3",
         "react": "^16.13.0",
         "react-dom": "^16.13.0"
     },
