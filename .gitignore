@@ -5,3 +5,4 @@
 /.tmp/
 .idea/
 .block/remote.json
+package-lock.json
