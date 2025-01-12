@@ -6,3 +6,31 @@
     transform: scale(1.1);
     transition: transform 0.2s ease-in-out;
 }
+
+details {
+    margin-bottom: 1rem; /* Space between collapsible sections */
+}
+
+summary {
+    font-weight: bold; /* Highlight the section headers */
+    cursor: pointer; /* Indicate interactivity */
+    padding: 0.5rem; /* Add a bit of spacing */
+    border-radius: 4px; /* Subtle rounded corners */
+    background-color: #f9f9f9; /* Light background for visibility */
+    border: 1px solid #ddd; /* Subtle border */
+}
+
+summary:hover {
+    background-color: #f1f1f1; /* Slightly darker on hover */
+}
+
+details[open] summary {
+    background-color: #e6f7ff; /* Different background when expanded */
+    border-color: #b3d7ff; /* Adjusted border color for open state */
+}
+
+details > div {
+    padding: 0.5rem 1rem; /* Padding for the content inside details */
+    border-left: 1px solid #ddd; /* Left border for visual grouping */
+    margin-top: 0.5rem; /* Space between summary and content */
+}

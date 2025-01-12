@@ -11,6 +11,9 @@ import {createCustomIcon} from "./CustomIcon";
 import {GlobalConfigKeys} from "./settings";
 import 'leaflet-fullscreen';
 import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 function Leaflet() {
     const base = useBase();
@@ -24,26 +27,33 @@ function Leaflet() {
     const colorFieldId = globalConfig.get(GlobalConfigKeys.COLOR_FIELD);
     const iconFieldId = globalConfig.get(GlobalConfigKeys.BOX_ICON_FIELD);
     const iconSizeFieldId = globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD);
+    const useClustering = globalConfig.get(GlobalConfigKeys.USE_CLUSTERING);
+    const allowFullScreen = globalConfig.get(GlobalConfigKeys.ALLOW_FULL_SCREEN);
 
     const table = tableId ? base.getTableByIdIfExists(tableId) : null;
     const records = useRecords(table);
 
     const mapRef = useRef(null);
     const markersRef = useRef([]);
+    const clusterGroupRef = useRef(null);
 
     useEffect(() => {
         // Initialize the map on first render
-        const map = L.map('map',{fullscreenControl: true}).setView([51.505, -0.09], 13); // Default center
+        const map = L.map('map',{fullscreenControl: allowFullScreen}).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
-        L.easyPrint({
-            title: 'Print Map',
-            sizeModes: ['A4Portrait', 'A4Landscape']
-        }).addTo(map);
+        // Initialize a MarkerClusterGroup
+        const markerClusterGroup = L.markerClusterGroup();
+        clusterGroupRef.current = markerClusterGroup;
+        console.log(markerClusterGroup);
+
+        // Add the cluster group to the map
+        map.addLayer(markerClusterGroup);
+
 
         mapRef.current = map;
         return () => {
@@ -53,8 +63,15 @@ function Leaflet() {
 
     useEffect(() => {
         // Clear old markers
-        markersRef.current.forEach(marker => marker.remove());
-        markersRef.current = [];
+        // markersRef.current.forEach(marker => marker.remove());
+        // markersRef.current = [];
+
+        if (!clusterGroupRef.current) return;
+        // Clear old clusters
+        clusterGroupRef.current.clearLayers();
+
+
+
 
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
@@ -80,9 +97,14 @@ function Leaflet() {
                     // Create a custom Leaflet divIcon
                     const customIcon = createCustomIcon(icon, color, iconSize);
 
-                    const marker = L.marker([lat, lon], {icon: customIcon}).addTo(mapRef.current);
+                    const marker = L.marker([lat, lon], {icon: customIcon});
                     marker.bindPopup(`<b>${name || 'No name'}</b>`);
-                    markersRef.current.push(marker);
+                    // clusterGroupRef.current.push(marker);
+                    if(useClustering) {
+                        clusterGroupRef.current.addLayer(marker);
+                    } else {
+                        mapRef.current.addLayer(marker);
+                    }
                 }
             });
         }
