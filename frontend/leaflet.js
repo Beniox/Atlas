@@ -30,17 +30,22 @@ function Leaflet() {
     const iconSizeFieldId = globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD);
     const useClustering = globalConfig.get(GlobalConfigKeys.USE_CLUSTERING);
     const allowFullScreen = globalConfig.get(GlobalConfigKeys.ALLOW_FULL_SCREEN);
+    const singleIconName = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME);
+    const useSingleIcon = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON);
+    const singleColor = globalConfig.get(GlobalConfigKeys.SINGLE_COLOR);
+    const singleIconSize = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE);
+    const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
+    const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
 
     const table = tableId ? base.getTableByIdIfExists(tableId) : null;
     const records = useRecords(table);
 
     const mapRef = useRef(null);
-    const markersRef = useRef([]);
     const clusterGroupRef = useRef(null);
 
     useEffect(() => {
         // Initialize the map on first render
-        const map = L.map('map',{fullscreenControl: allowFullScreen}).setView([51.505, -0.09], 13); // Default center
+        const map = L.map('map', {fullscreenControl: allowFullScreen}).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -72,38 +77,41 @@ function Leaflet() {
         clusterGroupRef.current.clearLayers();
 
 
-
-
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
             records.forEach(record => {
                 const lat = record.getCellValue(latitudeFieldId);
                 const lon = record.getCellValue(longitudeFieldId);
-                const name = record.getCellValue(nameFieldId);
-                const airtableColor = record.getCellValue(colorFieldId);
-                const icon = record.getCellValue(iconFieldId) || "map"
-                let iconSize = record.getCellValue(iconSizeFieldId);
 
-                let color = 'black';
-                if(airtableColor) {
-                    if(colorUtils.getHexForColor(airtableColor)) {
+                const name = record.getCellValue(nameFieldId);
+
+                // Determine icon
+                const iconName = useSingleIcon ? singleIconName : record.getCellValue(iconFieldId) || 'map';
+
+                // Determine icon size
+                let iconSize = useSingleIconSize ? singleIconSize : record.getCellValue(iconSizeFieldId);
+                if (iconSize == null) iconSize = 32;
+
+                // Determine color
+                let color = useSingleColor ? singleColor : 'black';
+                const airtableColor = record.getCellValue(colorFieldId);
+                if (!useSingleColor && airtableColor) {
+                    if (colorUtils.getHexForColor(airtableColor)) {
                         color = colorUtils.getHexForColor(airtableColor);
-                    }
-                    else if (CSS.supports('color', airtableColor)) {
+                    } else if (CSS.supports('color', airtableColor)) {
                         color = airtableColor;
                     }
                 }
 
 
-                if(iconSize == null) iconSize = 32;
                 if (isValidLocation(lat, lon) && iconSize > 0) {
                     // Create a custom Leaflet divIcon
-                    const customIcon = createCustomIcon(icon, color, iconSize);
+                    const customIcon = createCustomIcon(iconName, color, iconSize);
 
                     const marker = L.marker([lat, lon], {icon: customIcon});
                     marker.bindPopup(`<b>${name || 'No name'}</b>`);
                     // clusterGroupRef.current.push(marker);
-                    if(useClustering) {
+                    if (useClustering) {
                         clusterGroupRef.current.addLayer(marker);
                     } else {
                         mapRef.current.addLayer(marker);
@@ -112,7 +120,20 @@ function Leaflet() {
             });
         }
 
-    }, [records, latitudeFieldId, longitudeFieldId, nameFieldId, colorFieldId, iconFieldId, iconSizeFieldId]);
+    }, [records,
+        latitudeFieldId,
+        longitudeFieldId,
+        nameFieldId,
+        colorFieldId,
+        iconFieldId,
+        iconSizeFieldId,
+        useSingleColor,
+        singleColor,
+        useSingleIcon,
+        singleIconName,
+        useSingleIconSize,
+        singleIconSize,
+        useClustering,]);
 
     return (
         <Box display="flex" flexDirection="column" padding={3}>
@@ -130,27 +151,15 @@ function Leaflet() {
  * @returns {boolean}
  */
 function isValidLocation(lat, lon) {
-
-    if(!isNumber(lat) || !isNumber(lon)) {
-        return false;
-    }
-
-    if(lat < -90 || lat > 90) {
-        return false;
-    }
-
-    if(lon < -180 || lon > 180) {
-        return false;
-    }
-    return true;
-
+    return (
+        typeof lat === 'number' &&
+        typeof lon === 'number' &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lon >= -180 &&
+        lon <= 180
+    );
 }
-
-function isNumber(value) {
-    return typeof value === 'number';
-}
-
-
 
 
 export default Leaflet;

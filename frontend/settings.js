@@ -23,6 +23,10 @@ export const GlobalConfigKeys = {
     ALLOW_FULL_SCREEN: 'allowFullScreen',
     SINGLE_ICON_NAME: 'singleIconName', // New key for single icon value
     USE_SINGLE_ICON: 'useSingleIcon',  // New key for toggle stat
+    SINGLE_ICON_SIZE: 'singleIconSize',  // New key for single icon size
+    USE_SINGLE_ICON_SIZE: 'useSingleIconSize',  // New key for icon size toggle
+    SINGLE_COLOR: 'singleColor',  // New key for single color value
+    USE_SINGLE_COLOR: 'useSingleColor',  // New key for color toggle
 };
 
 function Settings() {
@@ -92,23 +96,43 @@ function Settings() {
                     </FormField>
                     {validateFieldSelection(GlobalConfigKeys.NAME_FIELD, 'Name Field')}
 
-                    <FormField
-                        label="Color Field"
-                        // description="Choose a field (single select or text) to define marker colors"
-                    >
-                        <FieldPickerSynced
-                            table={table}
-                            globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
-                            allowedTypes={[
-                                FieldType.SINGLE_SELECT,
-                                FieldType.SINGLE_LINE_TEXT,
-                                FieldType.FORMULA,
-                            ]}
+                    {/* Color Toggle */}
+                    <FormField label="Marker Color">
+                        <Switch
+                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) || false}
+                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_COLOR, value)}
+                            label="Use a single color for all markers"
+                            size="large"
                         />
+                        {globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) ? (
+                            <FormField label="Single Color">
+                                <Input
+                                    value={globalConfig.get(GlobalConfigKeys.SINGLE_COLOR) || ''}
+                                    onChange={(e) =>
+                                        globalConfig.setAsync(GlobalConfigKeys.SINGLE_COLOR, e.target.value)
+                                    }
+                                    placeholder="Enter a color value (e.g., #FF5733)"
+                                    type={'color'}
+                                />
+                            </FormField>
+                        ) : (
+                            <FormField label="Color Field">
+                                <FieldPickerSynced
+                                    table={table}
+                                    globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
+                                    allowedTypes={[
+                                        FieldType.SINGLE_SELECT,
+                                        FieldType.SINGLE_LINE_TEXT,
+                                        FieldType.FORMULA,
+                                    ]}
+                                />
+                            </FormField>
+                        )}
                     </FormField>
                     {validateFieldSelection(GlobalConfigKeys.COLOR_FIELD, 'Color Field')}
 
 
+                    {/* Icon Toggle */}
                     <FormField label="Marker Icon">
                         <Switch
                             value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) || false}
@@ -145,15 +169,34 @@ function Settings() {
                                  rel="noopener noreferrer">boxicons.com</a> to browse icon names.
                     </p>
 
-                    <FormField
-                        label="Icon Size Field"
-                        description="Choose a numeric field to set the size of the icons"
-                    >
-                        <FieldPickerSynced
-                            table={table}
-                            globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
-                            allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
+                    {/* Icon Size Toggle */}
+                    <FormField label="Marker Icon Size">
+                        <Switch
+                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) || false}
+                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_ICON_SIZE, value)}
+                            label="Use a single size for all markers"
+                            size="large"
                         />
+                        {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) ? (
+                            <FormField label="Single Icon Size">
+                                <Input
+                                    type="number"
+                                    value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) || ''}
+                                    onChange={(e) =>
+                                        globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE, e.target.value)
+                                    }
+                                    placeholder="Enter icon size (e.g., 20)"
+                                />
+                            </FormField>
+                        ) : (
+                            <FormField label="Icon Size Field">
+                                <FieldPickerSynced
+                                    table={table}
+                                    globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
+                                    allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
+                                />
+                            </FormField>
+                        )}
                     </FormField>
                     {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
                 </Box>
