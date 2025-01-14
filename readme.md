@@ -51,7 +51,7 @@ It then uploads it to your Airtable base.
 ## TODO:
 - [ ] select which items should be display
 - [ ] print map
-- [ ] if icon size is 0 dont display it
+- [x] if icon size is 0 dont display it
 - [ ] colors not working as intended
 
 
