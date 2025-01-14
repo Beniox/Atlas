@@ -38,7 +38,25 @@ function Leaflet() {
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
 
     const table = tableId ? base.getTableByIdIfExists(tableId) : null;
-    const records = useRecords(table);
+
+    const opts = {
+        tableId,
+        latitudeFieldId,
+        longitudeFieldId,
+        nameFieldId,
+    }
+    if(!useSingleColor) {
+        opts.colorFieldId = colorFieldId;
+    }
+    if(!useSingleIcon) {
+        opts.iconFieldId = iconFieldId;
+    }
+    if(!useSingleIconSize) {
+        opts.iconSizeFieldId = iconSizeFieldId;
+    }
+
+
+    const records = useRecords(table, opts);
 
     const mapRef = useRef(null);
     const clusterGroupRef = useRef(null);
