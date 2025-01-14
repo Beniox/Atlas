@@ -14,6 +14,7 @@ import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet-edgebuffer';
 
 function Leaflet() {
     const base = useBase();
@@ -81,7 +82,7 @@ function Leaflet() {
                 const name = record.getCellValue(nameFieldId);
                 const airtableColor = record.getCellValue(colorFieldId);
                 const icon = record.getCellValue(iconFieldId) || "map"
-                const iconSize = record.getCellValue(iconSizeFieldId) || 32;
+                let iconSize = record.getCellValue(iconSizeFieldId);
 
                 let color = 'black';
                 if(airtableColor) {
@@ -93,7 +94,9 @@ function Leaflet() {
                     }
                 }
 
-                if (lat && lon) {
+
+                if(iconSize == null) iconSize = 32;
+                if (isValidLocation(lat, lon) && iconSize > 0) {
                     // Create a custom Leaflet divIcon
                     const customIcon = createCustomIcon(icon, color, iconSize);
 
@@ -119,6 +122,34 @@ function Leaflet() {
         </Box>
     );
 }
+
+/**
+ * Check if the location is valid
+ * @param lat - The latitude
+ * @param lon - The longitude
+ * @returns {boolean}
+ */
+function isValidLocation(lat, lon) {
+
+    if(!isNumber(lat) || !isNumber(lon)) {
+        return false;
+    }
+
+    if(lat < -90 || lat > 90) {
+        return false;
+    }
+
+    if(lon < -180 || lon > 180) {
+        return false;
+    }
+    return true;
+
+}
+
+function isNumber(value) {
+    return typeof value === 'number';
+}
+
 
 
 

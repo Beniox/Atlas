@@ -8,7 +8,7 @@ import React, {useEffect, useState} from 'react';
 import 'leaflet/dist/leaflet.css'; // Import Leaflet's CSS for proper rendering
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-// import 'boxicons'
+import {ErrorBoundary} from "react-error-boundary";
 import Settings from "./settings";
 import {GlobalConfigKeys} from "./settings";
 import './style.css'
@@ -53,11 +53,17 @@ function App() {
     if (isShowingSettings) {
         return <Settings/>
     }
+
     return (
-        <Box display="flex" flexDirection="column" height="100vh">
-            <Leaflet/>
-        </Box>
+        <ErrorBoundary
+            FallbackComponent={() => <Box padding={3}>Something went wrong!</Box>}
+        >
+            <Box display="flex" flexDirection="column" height="100vh">
+                <Leaflet/>
+            </Box>
+        </ErrorBoundary>
     );
+
 }
 
 initializeBlock(() => <App/>);

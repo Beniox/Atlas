@@ -2,7 +2,9 @@ import {
     Box,
     FormField,
     TablePickerSynced,
-    FieldPickerSynced, Switch,
+    FieldPickerSynced,
+    Switch,
+    Input
 } from '@airtable/blocks/ui';
 import {FieldType} from "@airtable/blocks/models";
 import React from 'react';
@@ -19,6 +21,8 @@ export const GlobalConfigKeys = {
     ICON_SIZE_FIELD: 'iconSizeFieldId',
     USE_CLUSTERING: 'useClustering',
     ALLOW_FULL_SCREEN: 'allowFullScreen',
+    SINGLE_ICON_NAME: 'singleIconName', // New key for single icon value
+    USE_SINGLE_ICON: 'useSingleIcon',  // New key for toggle stat
 };
 
 function Settings() {
@@ -50,72 +54,22 @@ function Settings() {
                         <>
                             <FormField
                                 label="Latitude Field"
-                                description="Choose the field with latitude values for marker placement"
+                                // description="Choose the field with latitude values for marker placement"
                             >
-                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LATITUDE_FIELD}/>
+                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LATITUDE_FIELD}
+                                                   allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>
                             </FormField>
                             {validateFieldSelection(GlobalConfigKeys.LATITUDE_FIELD, 'Latitude Field')}
 
                             <FormField
                                 label="Longitude Field"
-                                description="Choose the field with longitude values for marker placement"
+                                // description="Choose the field with longitude values for marker placement"
                             >
-                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LONGITUDE_FIELD}/>
+                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LONGITUDE_FIELD}
+                                                   allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>
                             </FormField>
                             {validateFieldSelection(GlobalConfigKeys.LONGITUDE_FIELD, 'Longitude Field')}
 
-                            <FormField
-                                label="Name Field"
-                                description="Select the field used to display names for the markers"
-                            >
-                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.NAME_FIELD}/>
-                            </FormField>
-                            {validateFieldSelection(GlobalConfigKeys.NAME_FIELD, 'Name Field')}
-
-                            <FormField
-                                label="Color Field"
-                                description="Choose a field (single select or text) to define marker colors"
-                            >
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
-                                    allowedTypes={[
-                                        FieldType.SINGLE_SELECT,
-                                        FieldType.SINGLE_LINE_TEXT,
-                                        FieldType.FORMULA,
-                                    ]}
-                                />
-                            </FormField>
-                            {validateFieldSelection(GlobalConfigKeys.COLOR_FIELD, 'Color Field')}
-
-                            <FormField
-                                label="Box Icon Field"
-                                description="Select a field that contains BoxIcon names"
-                            >
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
-                                    allowedTypes={[FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}
-                                />
-                            </FormField>
-                            {validateFieldSelection(GlobalConfigKeys.BOX_ICON_FIELD, 'Box Icon Field')}
-
-                            <p>
-                                Go to <a href="https://boxicons.com/" target="_blank"
-                                         rel="noopener noreferrer">boxicons.com</a> to browse icon names.
-                            </p>
-
-                            <FormField
-                                label="Icon Size Field"
-                                description="Choose a numeric field to set the size of the icons"
-                            >
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
-                                    allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
-                                />
-                            </FormField>
-                            {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
                         </>
                     )}
 
@@ -126,6 +80,85 @@ function Settings() {
                     )}
                 </Box>
             </details>
+
+            <details>
+                <summary>Marker config</summary>
+                <Box marginTop={3}>
+                    <FormField
+                        label="Name Field"
+                        // description="Select the field used to display names for the markers"
+                    >
+                        <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.NAME_FIELD}/>
+                    </FormField>
+                    {validateFieldSelection(GlobalConfigKeys.NAME_FIELD, 'Name Field')}
+
+                    <FormField
+                        label="Color Field"
+                        // description="Choose a field (single select or text) to define marker colors"
+                    >
+                        <FieldPickerSynced
+                            table={table}
+                            globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
+                            allowedTypes={[
+                                FieldType.SINGLE_SELECT,
+                                FieldType.SINGLE_LINE_TEXT,
+                                FieldType.FORMULA,
+                            ]}
+                        />
+                    </FormField>
+                    {validateFieldSelection(GlobalConfigKeys.COLOR_FIELD, 'Color Field')}
+
+
+                    <FormField label="Marker Icon">
+                        <Switch
+                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) || false}
+                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_ICON, value)}
+                            label="Use a single icon for all markers"
+                            size="large"
+                        />
+                        {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) ? (
+                            // Input for single icon value
+                            <FormField label="Single Icon Name">
+                                <Input
+                                    value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME) || ''}
+                                    onChange={(e) =>
+                                        globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, e.target.value)
+                                    }
+                                    placeholder="Enter an icon name (e.g., bx-map)"
+                                />
+                            </FormField>
+                        ) : (
+                            // Field picker for icon names
+                            <FormField label="Icon Field">
+                                <FieldPickerSynced
+                                    table={table}
+                                    globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
+                                    allowedTypes={[FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}
+                                />
+                            </FormField>
+                        )}
+                    </FormField>
+                    {validateFieldSelection(GlobalConfigKeys.BOX_ICON_FIELD, 'Icon Field')}
+
+                    <p>
+                        Go to <a href="https://boxicons.com/" target="_blank"
+                                 rel="noopener noreferrer">boxicons.com</a> to browse icon names.
+                    </p>
+
+                    <FormField
+                        label="Icon Size Field"
+                        description="Choose a numeric field to set the size of the icons"
+                    >
+                        <FieldPickerSynced
+                            table={table}
+                            globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
+                            allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
+                        />
+                    </FormField>
+                    {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
+                </Box>
+            </details>
+
 
             <details>
                 <summary>Map config</summary>
