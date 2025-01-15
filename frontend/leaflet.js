@@ -14,7 +14,7 @@ import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import 'leaflet-edgebuffer';
+// import 'leaflet-edgebuffer';
 
 function Leaflet() {
     const base = useBase();
