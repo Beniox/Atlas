@@ -99,42 +99,55 @@ function Leaflet() {
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
             records.forEach(record => {
-                const lat = record.getCellValue(latitudeFieldId);
-                const lon = record.getCellValue(longitudeFieldId);
+                try {
+                    const lat = record.getCellValue(latitudeFieldId);
+                    const lon = record.getCellValue(longitudeFieldId);
 
-                const name = record.getCellValue(nameFieldId);
+                    const name = record.getCellValue(nameFieldId);
 
-                // Determine icon
-                const iconName = useSingleIcon ? singleIconName : record.getCellValue(iconFieldId) || 'map';
+                    // Determine icon
+                    const iconName = useSingleIcon ? singleIconName : record.getCellValue(iconFieldId) || 'map';
 
-                // Determine icon size
-                let iconSize = useSingleIconSize ? singleIconSize : record.getCellValue(iconSizeFieldId);
-                if (iconSize == null) iconSize = 32;
+                    // Determine icon size
+                    let iconSize = useSingleIconSize ? singleIconSize : record.getCellValue(iconSizeFieldId);
+                    if (iconSize == null) iconSize = 32;
 
-                // Determine color
-                let color = useSingleColor ? singleColor : 'black';
-                const airtableColor = record.getCellValue(colorFieldId);
-                if (!useSingleColor && airtableColor) {
-                    if (colorUtils.getHexForColor(airtableColor)) {
-                        color = colorUtils.getHexForColor(airtableColor);
-                    } else if (CSS.supports('color', airtableColor)) {
-                        color = airtableColor;
-                    }
-                }
-
-
-                if (isValidLocation(lat, lon) && iconSize > 0) {
-                    // Create a custom Leaflet divIcon
-                    const customIcon = createCustomIcon(iconName, color, iconSize);
-
-                    const marker = L.marker([lat, lon], {icon: customIcon});
-                    marker.bindPopup(`<b>${name || 'No name'}</b>`);
-                    // clusterGroupRef.current.push(marker);
-                    if (useClustering) {
-                        clusterGroupRef.current.addLayer(marker);
+                    // Determine color
+                    let color = 'black';
+                    if(useSingleColor) {
+                        if(CSS.supports('color', singleColor)) {
+                            color = singleColor;
+                        }
                     } else {
-                        mapRef.current.addLayer(marker);
+                        const airtableColor = record.getCellValue(colorFieldId);
+                        console.log(airtableColor);
+                        if (airtableColor) {
+                            if (colorUtils.getHexForColor(airtableColor.color)) {
+                                color = colorUtils.getHexForColor(airtableColor.color);
+                            } else if (CSS.supports('color', airtableColor)) {
+                                color = airtableColor;
+                            }
+                        }
                     }
+
+
+
+
+                    if (isValidLocation(lat, lon) && iconSize > 0) {
+                        // Create a custom Leaflet divIcon
+                        const customIcon = createCustomIcon(iconName, color, iconSize);
+
+                        const marker = L.marker([lat, lon], {icon: customIcon});
+                        marker.bindPopup(`<b>${name || 'No name'}</b>`);
+                        // clusterGroupRef.current.push(marker);
+                        if (useClustering) {
+                            clusterGroupRef.current.addLayer(marker);
+                        } else {
+                            mapRef.current.addLayer(marker);
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
                 }
             });
         }

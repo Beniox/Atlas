@@ -34,3 +34,10 @@ details > div {
     border-left: 1px solid #ddd; /* Left border for visual grouping */
     margin-top: 0.5rem; /* Space between summary and content */
 }
+
+.about {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color:#f9f9f9;
+    padding: 0.5rem; /* Add a bit of spacing */
+}
