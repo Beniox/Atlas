@@ -106,7 +106,7 @@ function Settings() {
                         />
                         {globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) ? (
                             <FormField label="Single Color">
-                                <Input
+                                <input
                                     value={globalConfig.get(GlobalConfigKeys.SINGLE_COLOR) || ''}
                                     onChange={(e) =>
                                         globalConfig.setAsync(GlobalConfigKeys.SINGLE_COLOR, e.target.value)
@@ -116,20 +116,22 @@ function Settings() {
                                 />
                             </FormField>
                         ) : (
-                            <FormField label="Color Field">
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
-                                    allowedTypes={[
-                                        FieldType.SINGLE_SELECT,
-                                        FieldType.SINGLE_LINE_TEXT,
-                                        FieldType.FORMULA,
-                                    ]}
-                                />
-                            </FormField>
+                            <>
+                                <FormField label="Color Field">
+                                    <FieldPickerSynced
+                                        table={table}
+                                        globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
+                                        allowedTypes={[
+                                            FieldType.SINGLE_SELECT,
+                                            FieldType.SINGLE_LINE_TEXT,
+                                            FieldType.FORMULA,
+                                        ]}
+                                    />
+                                </FormField>
+                                {validateFieldSelection(GlobalConfigKeys.COLOR_FIELD, 'Color Field')}
+                            </>
                         )}
                     </FormField>
-                    {validateFieldSelection(GlobalConfigKeys.COLOR_FIELD, 'Color Field')}
 
 
                     {/* Icon Toggle */}
@@ -152,17 +154,20 @@ function Settings() {
                                 />
                             </FormField>
                         ) : (
-                            // Field picker for icon names
-                            <FormField label="Icon Field">
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
-                                    allowedTypes={[FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}
-                                />
-                            </FormField>
+                            <>
+                                {/* Field picker for icon names*/}
+                                <FormField label="Icon Field">
+                                    <FieldPickerSynced
+                                        table={table}
+                                        globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
+                                        allowedTypes={[FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}
+                                    />
+                                </FormField>
+                                {validateFieldSelection(GlobalConfigKeys.BOX_ICON_FIELD, 'Icon Field')}
+                            </>
                         )}
                     </FormField>
-                    {validateFieldSelection(GlobalConfigKeys.BOX_ICON_FIELD, 'Icon Field')}
+
 
                     <p>
                         Go to <a href="https://boxicons.com/" target="_blank"
@@ -189,16 +194,18 @@ function Settings() {
                                 />
                             </FormField>
                         ) : (
-                            <FormField label="Icon Size Field">
-                                <FieldPickerSynced
-                                    table={table}
-                                    globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
-                                    allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
-                                />
-                            </FormField>
+                            <>
+                                <FormField label="Icon Size Field">
+                                    <FieldPickerSynced
+                                        table={table}
+                                        globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
+                                        allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}
+                                    />
+                                </FormField>
+                                {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
+                            </>
                         )}
                     </FormField>
-                    {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
                 </Box>
             </details>
 

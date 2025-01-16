@@ -31,10 +31,30 @@ function App() {
     const colorFieldId = globalConfig.get(GlobalConfigKeys.COLOR_FIELD);
     const boxIconFieldId = globalConfig.get(GlobalConfigKeys.BOX_ICON_FIELD);
     const iconSizeFieldId = globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD);
+    const singleIconName = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME);
+    const useSingleIcon = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON);
+    const singleColor = globalConfig.get(GlobalConfigKeys.SINGLE_COLOR);
+    const singleIconSize = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE);
+    const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
+    const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
 
-    if (!tableId || !latitudeFieldId || !longitudeFieldId || !nameFieldId || !colorFieldId || !boxIconFieldId || !iconSizeFieldId) {
+    // Check if the required global config values are set
+    if (!tableId || !latitudeFieldId || !longitudeFieldId || !nameFieldId ) {
         return <Settings/>
     }
+
+    if(useSingleIcon && !singleIconName || !useSingleIcon && !boxIconFieldId) {
+        return <Settings/>
+    }
+
+    if(useSingleColor && !singleColor || !useSingleColor && !colorFieldId) {
+        return <Settings/>
+    }
+
+    if(useSingleIconSize && !singleIconSize || !useSingleIconSize && !iconSizeFieldId) {
+        return <Settings/>
+    }
+
 
     useEffect(() => {
         // Dynamically add Boxicons CDN to the head tag

@@ -14,6 +14,7 @@ import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+
 // import 'leaflet-edgebuffer';
 
 function Leaflet() {
@@ -45,13 +46,13 @@ function Leaflet() {
         longitudeFieldId,
         nameFieldId,
     }
-    if(!useSingleColor) {
+    if (!useSingleColor) {
         opts.colorFieldId = colorFieldId;
     }
-    if(!useSingleIcon) {
+    if (!useSingleIcon) {
         opts.iconFieldId = iconFieldId;
     }
-    if(!useSingleIconSize) {
+    if (!useSingleIconSize) {
         opts.iconSizeFieldId = iconSizeFieldId;
     }
 
@@ -169,7 +170,7 @@ function Leaflet() {
  * @returns {boolean}
  */
 function isValidLocation(lat, lon) {
-    return (
+    const valid = (
         typeof lat === 'number' &&
         typeof lon === 'number' &&
         lat >= -90 &&
@@ -177,6 +178,10 @@ function isValidLocation(lat, lon) {
         lon >= -180 &&
         lon <= 180
     );
+    if (!valid) {
+        console.log(`Invalid location: ${lat}, ${lon}`);
+    }
+    return valid;
 }
 
 
