@@ -53,13 +53,6 @@ npm run update
 This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.
 
 
-## TODO:
-- [ ] select which items should be display
-- [ ] print map
-- [x] if icon size is 0 dont display it
-- [ ] colors not working as intended
-
-
 # Settings
 
 ## Marker
@@ -74,3 +67,7 @@ Markers can have dynamic colors based on Airtable table data:
 - Single Select: Enable color-code options in the formatting section of your Airtable table and select a color.
 
 This allows you to customize the map markers based on your data attributes
+
+
+# Roadmap
+- [ ] printing the map
