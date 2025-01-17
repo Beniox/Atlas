@@ -99,7 +99,7 @@ All markers will share the same color. Click the color field in the settings pan
 
 #### Dynamic Colors
 Markers can have dynamic colors based on Airtable table data:
-- Single Line Text: Use valid CSS color names (e.g., `red`, `blue`) or hex codes (e.g., `#00ff00` for green).
+- Single Line Text: Use valid CSS color names (e.g., `red`, `blue`), hex codes (e.g., `#00ff00` for green) or colour objects (`rgba(r,g,b,a)` to have an alpha valve)
 - Single Select: Enable color-code options in the formatting section of your Airtable table and select a color.
 
 ### Icon
