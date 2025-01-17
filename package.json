@@ -3,7 +3,7 @@
         "lint": "eslint frontend",
         "dev": "block run",
         "build": "block release",
-        "init": "git init && git add . && git remote add upstream https://github.com/Beniox/leaflet-airtable.git && npm run update",
+        "init": "git init && git add . && git commit -m 'init' && git remote add upstream https://github.com/Beniox/leaflet-airtable.git && npm run update",
         "update": "git fetch upstream && git merge upstream/master && block release"
     },
     "dependencies": {

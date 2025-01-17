@@ -4,6 +4,27 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 
 ![screenshot](media/airtable.png)
 
+## Table of Content
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [How to add this extension to your base](#how-to-add-this-extension-to-your-base)
+- [Requirements](#requirements)
+- [Install](#install)
+- [Update](#update)
+- [Configuration](#configuration)
+  - [Database](#database)
+    - [Table](#table)
+    - [Latitude Field](#latitude-field)
+    - [Longitude Field](#longitude-field)
+  - [Marker](#marker)
+    - [Name](#name)
+    - [Colors](#colors)
+    - [Icon](#icon)
+    - [Size](#size)
+  - [Map Config](#map-config)
+    - [Clustering](#clustering)
+    - [Fullscreen](#fullscreen)
+- [Roadmap](#roadmap)
 # Features
 - Displays an interactive map using Leaflet.js.
 - Fetches data from Airtable, including:
@@ -20,6 +41,7 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 - [React](https://react.dev/): A JavaScript library for building dynamic user interfaces.
 - [Boxicons](https://boxicons.com/): A versatile icon library.
 - [Leaflet.Fullscreen](https://github.com/Leaflet/Leaflet.fullscreen): A plugin to enable fullscreen functionality for Leaflet maps.
+- [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster): Provides animated marker clustering functionality for Leaflet
 
 
 
@@ -27,7 +49,7 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 
 ![How to add this block to your base](media/installing.png)
 
-## Requirenments
+## Requirements
 - [Node.js](https://nodejs.org/en/download): Ensure it is installed on your system.
 - [git](https://git-scm.com/): Required for cloning and updating the extension.
 
@@ -53,9 +75,23 @@ npm run update
 This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.
 
 
-# Settings
+# Configuration
+
+## Database
+### Table
+Select the Airtable table to be used with the map.
+
+### Latitude Field
+Choose a numeric field with at least four decimal points for latitude values.
+
+### Longitude Field
+Choose a numeric field with at least four decimal points for longitude values.
+
+*If the latitude or longitude field value is out of range or empty, the corresponding marker will not be displayed.*
 
 ## Marker
+### Name
+Define the name of the marker, which must be set from a field in the Airtable table. This name will be used in popups or labels to provide context.
 ### Colors
 You can configure marker colors in two ways:
 #### Static Colors
@@ -63,10 +99,37 @@ All markers will share the same color. Click the color field in the settings pan
 
 #### Dynamic Colors
 Markers can have dynamic colors based on Airtable table data:
-- Single Line Text: Use valid CSS color names (e.g., red, blue) or hex codes (e.g., #00ff00 for green).
+- Single Line Text: Use valid CSS color names (e.g., `red`, `blue`) or hex codes (e.g., `#00ff00` for green).
 - Single Select: Enable color-code options in the formatting section of your Airtable table and select a color.
 
-This allows you to customize the map markers based on your data attributes
+### Icon
+Set the icon type for the markers. Icons can be configured either statically or dynamically, similar to colors:
+
+- **Static Icons**: Select a specific icon to apply to all markers.
+- **Dynamic Icons**: Assign icons based on an Airtable table field. Valid icons include any from [Boxicons](https://boxicons.com/).
+
+If the icon field is empty or contains an invalid value, a default marker icon will be used.
+
+### Size
+
+Marker size can be configured either statically or dynamically:
+
+This allows you to customize the map markers based on your data attributes:
+
+- **Static Size**: Set a uniform size for all markers.
+- **Dynamic Size**: Define marker size based on an Airtable table field.
+
+If the size is set to `0`, the marker will not be displayed. If the field value is missing or invalid, the marker size will default to `32`.
+
+
+## Map config
+### Clustering
+Enable or disable marker clustering. When enabled, nearby markers are grouped together to improve map readability, especially at lower zoom levels.
+
+### Fullscreen
+
+Toggle fullscreen functionality for the map. This option allows users to expand the map to fill the entire screen, enhancing usability for detailed exploration.
+
 
 
 # Roadmap
