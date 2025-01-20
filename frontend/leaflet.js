@@ -5,10 +5,10 @@ import {
     Box,
     colorUtils,
 } from '@airtable/blocks/ui';
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import L from 'leaflet';
 import {createCustomIcon} from "./CustomIcon";
-import {GlobalConfigKeys} from "./settings";
+import Settings, {GlobalConfigKeys} from "./settings";
 import 'leaflet-fullscreen';
 import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 import 'leaflet.markercluster';
@@ -62,6 +62,18 @@ function Leaflet() {
     const mapRef = useRef(null);
     const clusterGroupRef = useRef(null);
 
+    const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]';
+    let legendData = "";
+    try {
+        legendData = JSON.parse(legendJSON);
+    }
+    catch (e) {
+        console.error(e);
+    }
+    const legendPosition = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft';
+    const showLegend = globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false;
+
+
     useEffect(() => {
         // Initialize the map on first render
         const map = L.map('map', {fullscreenControl: allowFullScreen}).setView([51.505, -0.09], 13); // Default center
@@ -74,10 +86,29 @@ function Leaflet() {
         // Initialize a MarkerClusterGroup
         const markerClusterGroup = L.markerClusterGroup();
         clusterGroupRef.current = markerClusterGroup;
-        console.log(markerClusterGroup);
 
         // Add the cluster group to the map
         map.addLayer(markerClusterGroup);
+
+
+        if(showLegend) {
+            try{
+            // add legend
+            const legend = L.control({position: legendPosition});
+            legend.onAdd = function () {
+                const div = L.DomUtil.create('div', 'info legend');
+                let content = "";
+                legendData.map((item) => {
+                    content += `<i class="bx bxs-${item.icon}" style="color: ${item.color}; font-size: 20px;"></i> ${item.text}<br>`;
+                });
+                div.innerHTML = content;
+                return div;
+            }
+            legend.addTo(map);
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
 
         mapRef.current = map;
@@ -87,6 +118,8 @@ function Leaflet() {
     }, []);
 
     useEffect(() => {
+
+
         // Clear old markers
         // markersRef.current.forEach(marker => marker.remove());
         // markersRef.current = [];
@@ -120,7 +153,6 @@ function Leaflet() {
                         }
                     } else {
                         const airtableColor = record.getCellValue(colorFieldId);
-                        console.log(airtableColor);
                         if (airtableColor) {
                             if (colorUtils.getHexForColor(airtableColor.color)) {
                                 color = colorUtils.getHexForColor(airtableColor.color);
@@ -168,8 +200,8 @@ function Leaflet() {
         useClustering,]);
 
     return (
-        <Box display="flex" flexDirection="column" padding={3}>
-            <div style={{width: '100%', height: '500px'}}>
+        <Box display="flex" flexDirection="column">
+            <div style={{width: '100%', height: '100vh'}}>
                 <div id="map" style={{width: '100%', height: '100%'}}></div>
             </div>
         </Box>

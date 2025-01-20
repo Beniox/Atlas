@@ -130,6 +130,18 @@ Enable or disable marker clustering. When enabled, nearby markers are grouped to
 
 Toggle fullscreen functionality for the map. This option allows users to expand the map to fill the entire screen, enhancing usability for detailed exploration.
 
+## Legend
+The legend displays the marker name, color, and icon for each marker on the map. It can be toggled on or off using the settings panel.
+
+### Enable Legend
+Toggle the legend on or off.
+
+### Legend Position
+Choose the position of the legend on the map: `top-left`, `top-right`, `bottom-left`, or `bottom-right`.
+
+### Legend Content
+
+Define each legend item with a name, color, and icon.
 
 
 # Roadmap

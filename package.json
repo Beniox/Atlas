@@ -16,7 +16,9 @@
         "leaflet.markercluster": "^1.5.3",
         "react": "^16.13.0",
         "react-dom": "^16.13.0",
-        "react-error-boundary": "^5.0.0"
+        "react-error-boundary": "^5.0.0",
+        "react-sortablejs": "^6.1.4",
+        "sortablejs": "^1.15.6"
     },
     "devDependencies": {
         "eslint": "^6.8.0",
