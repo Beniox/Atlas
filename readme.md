@@ -7,10 +7,6 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 ## Table of Content
 - [Features](#features)
 - [Technologies Used](#technologies-used)
-- [How to add this extension to your base](#how-to-add-this-extension-to-your-base)
-- [Requirements](#requirements)
-- [Install](#install)
-- [Update](#update)
 - [Configuration](#configuration)
   - [Database](#database)
     - [Table](#table)
@@ -28,6 +24,10 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
     - [Enable Legend](#enable-legend)
     - [Legend Position](#legend-position)
     - [Legend Content](#legend-content)
+- [Install](#install)
+  - [Requirements](#requirements)
+  - [Installation Steps](#installation-steps)
+  - [Update](#update)
 - [Roadmap](#roadmap)
 # Features
 - Displays an interactive map using Leaflet.js.
@@ -46,37 +46,6 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 - [Boxicons](https://boxicons.com/): A versatile icon library.
 - [Leaflet.Fullscreen](https://github.com/Leaflet/Leaflet.fullscreen): A plugin to enable fullscreen functionality for Leaflet maps.
 - [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster): Provides animated marker clustering functionality for Leaflet
-
-
-
-## How to add this extension to your base
-
-![How to add this block to your base](media/installing.png)
-
-## Requirements
-- [Node.js](https://nodejs.org/en/download): Ensure it is installed on your system.
-- [git](https://git-scm.com/): Required for cloning and updating the extension.
-
-## Install
-
-1. Click `Add an extension` in your Airtable base.
-2. Select `Build a custom extension`
-3. Under the `Start from an example section`, click `Remix from GitHub'in the 'Start from an example`
-4. Paste `https://github.com/Beniox/leaflet-airtable` as the GitHub repository
-5. Click `Create Extension`
-6. Install the CLI: `npm install -g @airtable/blocks-cli`
-7. Open a terminal in your desired folder and run the command provided by Airtable, starting with `block init ...`
-8. Create an [API token](https://airtable.com/create/tokens) with the following scope: `scope:manage, Access:name` of your base
-9. Navigate to the created folder using the terminal and run: `npm run init`
-10. The extension should now be available in your Airtable base. If errors occur, ensure the API token and configuration are correct.
-
-## Update
-
-To update the extension, open a terminal in the folder and run:
-```npm
-npm run update
-```
-This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.
 
 
 # Configuration
@@ -146,6 +115,36 @@ Choose the position of the legend on the map: `top-left`, `top-right`, `bottom-l
 ### Legend Content
 
 Define each legend item with a name, color, and icon.
+
+
+# Install
+
+![How to add this block to your base](media/installing.png)
+
+## Requirements
+- [Node.js](https://nodejs.org/en/download): Ensure it is installed on your system.
+- [git](https://git-scm.com/): Required for cloning and updating the extension.
+
+
+## Installation Steps
+1. Click `Add an extension` in your Airtable base.
+2. Select `Build a custom extension`
+3. Under the `Start from an example section`, click `Remix from GitHub'in the 'Start from an example`
+4. Paste `https://github.com/Beniox/leaflet-airtable` as the GitHub repository
+5. Click `Create Extension`
+6. Install the CLI: `npm install -g @airtable/blocks-cli`
+7. Open a terminal in your desired folder and run the command provided by Airtable, starting with `block init ...`
+8. Create an [API token](https://airtable.com/create/tokens) with the following scope: `scope:manage, Access:name` of your base
+9. Navigate to the created folder using the terminal and run: `npm run init`
+10. The extension should now be available in your Airtable base. If errors occur, ensure the API token and configuration are correct.
+
+## Update
+
+To update the extension, open a terminal in the folder and run:
+```npm
+npm run update
+```
+This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.
 
 
 # Roadmap
