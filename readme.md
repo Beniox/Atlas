@@ -24,6 +24,10 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
   - [Map Config](#map-config)
     - [Clustering](#clustering)
     - [Fullscreen](#fullscreen)
+  - [Legend](#legend)
+    - [Enable Legend](#enable-legend)
+    - [Legend Position](#legend-position)
+    - [Legend Content](#legend-content)
 - [Roadmap](#roadmap)
 # Features
 - Displays an interactive map using Leaflet.js.
