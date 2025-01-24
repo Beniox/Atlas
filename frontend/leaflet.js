@@ -5,15 +5,23 @@ import {
     Box,
     colorUtils,
 } from '@airtable/blocks/ui';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef} from 'react';
 import L from 'leaflet';
 import {createCustomIcon} from "./CustomIcon";
-import Settings, {GlobalConfigKeys} from "./settings";
+import {GlobalConfigKeys} from "./settings";
 import 'leaflet-fullscreen';
-import 'leaflet-fullscreen/dist/leaflet.fullscreen.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+
+// import 'leaflet-fullscreen/dist/leaflet.fullscreen.css'
+import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
+loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css")
+
+import { GestureHandling } from "leaflet-gesture-handling";
+
+import "leaflet/dist/leaflet.css";
+import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
 
 // import 'leaflet-edgebuffer';
 
@@ -37,8 +45,9 @@ function Leaflet() {
     const singleIconSize = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE);
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
+    const useGestureHandling = globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false;
 
-    const table = tableId ? base.getTableByIdIfExists(tableId) : null;
+    const table =base.getTableByIdIfExists(tableId); // should never happen that table is null
 
     const opts = {
         tableId,
@@ -76,7 +85,7 @@ function Leaflet() {
 
     useEffect(() => {
         // Initialize the map on first render
-        const map = L.map('map', {fullscreenControl: allowFullScreen}).setView([51.505, -0.09], 13); // Default center
+        const map = L.map('map', {fullscreenControl: allowFullScreen, gestureHandling: useGestureHandling}).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -108,6 +117,19 @@ function Leaflet() {
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        // Prevents users from getting trapped on the map when scrolling a long page.
+        if(useGestureHandling) {
+            map.on('fullscreenchange', function () {
+                if (map.isFullscreen()) {
+                    console.log('entered fullscreen');
+                    map.gestureHandling.disable();
+                } else {
+                    console.log('exited fullscreen');
+                    map.gestureHandling.enable();
+                }
+            });
         }
 
 

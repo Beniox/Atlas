@@ -4,15 +4,20 @@ import {
     Box,
     useSettingsButton,
 } from '@airtable/blocks/ui';
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
+import {ErrorBoundary} from "react-error-boundary";
+import {base} from "@airtable/blocks";
+import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
+
+import Settings from "./settings";
+import {GlobalConfigKeys} from "./settings";
+import Leaflet from "./leaflet";
+
+import './style.css'
 import 'leaflet/dist/leaflet.css'; // Import Leaflet's CSS for proper rendering
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import {ErrorBoundary} from "react-error-boundary";
-import Settings from "./settings";
-import {GlobalConfigKeys} from "./settings";
-import './style.css'
-import Leaflet from "./leaflet";
+loadCSSFromURLAsync("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css");
 
 function App() {
     const [isShowingSettings, setIsShowingSettings] = useState(false);
@@ -38,8 +43,10 @@ function App() {
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
 
+    const table =base.getTableByIdIfExists(tableId);
+
     // Check if the required global config values are set
-    if (!tableId || !latitudeFieldId || !longitudeFieldId || !nameFieldId ) {
+    if (!table ||!tableId || !latitudeFieldId || !longitudeFieldId || !nameFieldId ) {
         return <Settings/>
     }
 
@@ -55,19 +62,6 @@ function App() {
         return <Settings/>
     }
 
-
-    useEffect(() => {
-        // Dynamically add Boxicons CDN to the head tag
-        const link = document.createElement("link");
-        link.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
-        link.rel = "stylesheet";
-        document.head.appendChild(link);
-
-        // Cleanup when the component is unmounted
-        return () => {
-            document.head.removeChild(link);
-        };
-    }, []);
 
 
     if (isShowingSettings) {

@@ -28,6 +28,7 @@ export const GlobalConfigKeys = {
     LEGEND: 'legend',
     SHOW_LEGEND: 'showLegend',
     LEGEND_POSITION: 'legendPosition',
+    GESTUREHANDLING: 'gestureHandling',
 };
 
 function Settings() {
@@ -212,6 +213,13 @@ function Settings() {
                         value={globalConfig.get(GlobalConfigKeys.ALLOW_FULL_SCREEN) || false}
                         onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.ALLOW_FULL_SCREEN, value)}
                         label="Allow Fullscreen"
+                        size="large"
+                    />
+
+                    <Switch
+                        value={globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false}
+                        onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.GESTUREHANDLING, value)}
+                        label="Zoom with ctrl + scroll"
                         size="large"
                     />
 
