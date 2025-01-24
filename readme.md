@@ -4,8 +4,17 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 
 ![screenshot](media/airtable.png)
 
+# Features
+- Displays an interactive map using Leaflet.js.
+- Fetches data from Airtable, including:
+  - Latitude and longitude coordinates.
+  - Name, color, icon type, and icon size.
+- Customizable marker descriptions shown on click.
+- Settings panel for seamless configuration within the Airtable block interface.
+
+
+
 ## Table of Content
-- [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Configuration](#configuration)
   - [Database](#database)
@@ -29,15 +38,8 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
   - [Installation Steps](#installation-steps)
   - [Update](#update)
 - [Roadmap](#roadmap)
-# Features
-- Displays an interactive map using Leaflet.js.
-- Fetches data from Airtable, including:
-  - Latitude and longitude coordinates.
-  - Name, color, icon type, and icon size.
-- Customizable marker descriptions shown on click.
-- Settings panel for seamless configuration within the Airtable block interface.
 
-
+---
 
 ## Technologies Used
 - [Leaflet.js](https://leafletjs.com/): A powerful JavaScript library for building interactive maps.
@@ -46,7 +48,9 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 - [Boxicons](https://boxicons.com/): A versatile icon library.
 - [Leaflet.Fullscreen](https://github.com/Leaflet/Leaflet.fullscreen): A plugin to enable fullscreen functionality for Leaflet maps.
 - [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster): Provides animated marker clustering functionality for Leaflet
+- [Leaflet.GestureHandling](https://github.com/elmarquis/Leaflet.GestureHandling): A plugin to enable gesture handling for Leaflet maps.
 
+---
 
 # Configuration
 
@@ -103,6 +107,10 @@ Enable or disable marker clustering. When enabled, nearby markers are grouped to
 
 Toggle fullscreen functionality for the map. This option allows users to expand the map to fill the entire screen, enhancing usability for detailed exploration.
 
+### Gesture Handling
+Toggle gesture handling for the map. When enabled, the map will respond to touch gestures on mobile devices, such as pinch-to-zoom and swipe-to-pan.
+On desktop devices, the map will respond to ctrl + scroll events for zooming.
+
 ## Legend
 The legend displays the marker name, color, and icon for each marker on the map. It can be toggled on or off using the settings panel.
 
@@ -116,6 +124,7 @@ Choose the position of the legend on the map: `top-left`, `top-right`, `bottom-l
 
 Define each legend item with a name, color, and icon.
 
+---
 
 # Install
 
