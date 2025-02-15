@@ -4,7 +4,7 @@
         "dev": "block run",
         "build": "block release",
         "init": "git init && git add . && git commit -m 'init' && git remote add upstream https://github.com/Beniox/leaflet-airtable.git && npm run update",
-        "update": "git fetch upstream && git merge upstream/master && block release"
+        "update": "git fetch upstream && git merge upstream/master && npm install & block release"
     },
     "dependencies": {
         "@airtable/blocks": "1.8.0",
