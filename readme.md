@@ -36,7 +36,6 @@ This project integrates Airtable with Leaflet.js using OpenStreetMap to create i
 - [Install](#install)
   - [Requirements](#requirements)
   - [Installation Steps](#installation-steps)
-  - [Update](#update)
 - [Roadmap](#roadmap)
 
 ---
@@ -144,16 +143,21 @@ Define each legend item with a name, color, and icon.
 6. Install the CLI: `npm install -g @airtable/blocks-cli`
 7. Open a terminal in your desired folder and run the command provided by Airtable, starting with `block init ...`
 8. Create an [API token](https://airtable.com/create/tokens) with the following scope: `scope:manage, Access:name` of your base
-9. Navigate to the created folder using the terminal and run: `npm run init`
+9. Navigate to the created folder using the terminal and run: `block release`
 10. The extension should now be available in your Airtable base. If errors occur, ensure the API token and configuration are correct.
 
-## Update
+[//]: # (## Update)
 
-To update the extension, open a terminal in the folder and run:
-```npm
-npm run update
-```
-This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.
+[//]: # ()
+[//]: # (To update the extension, open a terminal in the folder and run:)
+
+[//]: # (```npm)
+[//]: # (npm run update)
+
+[//]: # ()
+[//]: # (```)
+
+[//]: # (This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.)
 
 
 # Roadmap

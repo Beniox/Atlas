@@ -50,7 +50,7 @@ function Settings() {
     const permission = globalConfig.checkPermissionsForSetPaths(Object.entries(GlobalConfigKeys));
     if (permission.hasPermission === false) {
         return (<>
-            <Box padding={3}>
+            <Box padding={3} className="about">
                 <Text>You do not have permission to edit these settings</Text>
                 <About/>
             </Box>
@@ -164,8 +164,8 @@ function Settings() {
 
 
                     <p>
-                        Go to <a href="https://boxicons.com/" target="_blank"
-                                 rel="noopener noreferrer">boxicons.com</a> to browse icon names.
+                        Go to <a href="https://v2.boxicons.com/" target="_blank"
+                                 rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names.
                     </p>
 
                     {/* Icon Size Toggle */}
