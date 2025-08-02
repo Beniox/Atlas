@@ -1,17 +1,31 @@
-# Leaflet Map Integration with Airtable
+# Atlas – Interactive Airtable Maps with Leaflet
 
-This project integrates Airtable with Leaflet.js using OpenStreetMap to create interactive, customizable maps.
+This project seamlessly bridges Airtable and Leaflet.js on top of OpenStreetMap to let you transform your geo-enabled Airtable base into a fully interactive, customizable map—directly inside the Airtable interface.
 
-![screenshot](media/airtable.png)
+![Live map inside Airtable](media/airtable.png)
 
 # Features
-- Displays an interactive map using Leaflet.js.
-- Fetches data from Airtable, including:
-  - Latitude and longitude coordinates.
-  - Name, color, icon type, and icon size.
-- Customizable marker descriptions shown on click.
-- Settings panel for seamless configuration within the Airtable block interface.
 
+- **Instant OpenStreetMap integration**  
+  Renders a responsive Leaflet map with standard OSM tiles.
+
+- **Real-time data syncing**  
+  Pulls latitude/longitude, names, colors, icons, and sizes straight from your Airtable fields.
+
+- **Rich, on-click popups**  
+  Display descriptions when users click a marker.
+
+- **Flexible marker styling**  
+  Choose per-record colors, SVG or BoxIcon icons, and dynamic sizing—or apply a single global style.
+
+- **Built-in legend & clustering**  
+  Drag-and-drop legend entries, toggle clusters on/off for large datasets.
+
+- **Full-screen & gesture controls**  
+  Enable fullscreen mode, restrict zoom to ctrl+scroll, and configure other map behaviors via simple switches.
+
+- **No-code settings panel**  
+  Configure table, field mapping, filters, and display options with Airtable Blocks UI pickers—no API keys or manual JSON edits.
 
 
 ## Table of Content
@@ -138,7 +152,7 @@ Define each legend item with a name, color, and icon.
 1. Click `Add an extension` in your Airtable base.
 2. Select `Build a custom extension`
 3. Under the `Start from an example section`, click `Remix from GitHub'in the 'Start from an example`
-4. Paste `https://github.com/Beniox/leaflet-airtable` as the GitHub repository
+4. Paste `https://github.com/Beniox/atlas` as the GitHub repository
 5. Click `Create Extension`
 6. Install the CLI: `npm install -g @airtable/blocks-cli`
 7. Open a terminal in your desired folder and run the command provided by Airtable, starting with `block init ...`

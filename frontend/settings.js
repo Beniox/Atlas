@@ -449,7 +449,7 @@ function About() {
             <br/>
 
             For more information, feature requests, or bug reports, please visit my <a
-            href="https://github.com/Beniox/leaflet-airtable" target="_blank"
+            href="https://github.com/Beniox/atlas" target="_blank"
             rel="noopener noreferrer">GitHub</a>.
 
             <br/>
