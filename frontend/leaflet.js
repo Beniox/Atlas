@@ -16,9 +16,10 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 // import 'leaflet-fullscreen/dist/leaflet.fullscreen.css'
 import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
-loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css")
 
-import { GestureHandling } from "leaflet-gesture-handling";
+loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css").then();
+
+// import { GestureHandling } from "leaflet-gesture-handling";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
@@ -46,8 +47,13 @@ function Leaflet() {
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
     const useGestureHandling = globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false;
+    const useFixesStartLocation = globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION);
+    const startLatitude = globalConfig.get(GlobalConfigKeys.START_LATITUDE);
+    const startLongitude = globalConfig.get(GlobalConfigKeys.START_LONGITUDE);
+    const startZoom = globalConfig.get(GlobalConfigKeys.START_ZOOM);
 
-    const table =base.getTableByIdIfExists(tableId); // should never happen that table is null
+
+    const table = base.getTableByIdIfExists(tableId); // should never happen that table is null
 
     const opts = {
         tableId,
@@ -65,6 +71,8 @@ function Leaflet() {
         opts.iconSizeFieldId = iconSizeFieldId;
     }
 
+    const firstRun = useRef(true);
+
 
     const records = useRecords(table, opts);
 
@@ -75,8 +83,7 @@ function Leaflet() {
     let legendData = "";
     try {
         legendData = JSON.parse(legendJSON);
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e);
     }
     const legendPosition = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft';
@@ -85,7 +92,10 @@ function Leaflet() {
 
     useEffect(() => {
         // Initialize the map on first render
-        const map = L.map('map', {fullscreenControl: allowFullScreen, gestureHandling: useGestureHandling}).setView([51.505, -0.09], 13); // Default center
+        const map = L.map('map', {
+            fullscreenControl: allowFullScreen,
+            gestureHandling: useGestureHandling
+        }).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -100,27 +110,27 @@ function Leaflet() {
         map.addLayer(markerClusterGroup);
 
 
-        if(showLegend) {
-            try{
-            // add legend
-            const legend = L.control({position: legendPosition});
-            legend.onAdd = function () {
-                const div = L.DomUtil.create('div', 'info legend');
-                let content = "";
-                legendData.map((item) => {
-                    content += `<i class="bx bxs-${item.icon}" style="color: ${item.color}; font-size: 20px;"></i> ${item.text}<br>`;
-                });
-                div.innerHTML = content;
-                return div;
-            }
-            legend.addTo(map);
+        if (showLegend) {
+            try {
+                // add legend
+                const legend = L.control({position: legendPosition});
+                legend.onAdd = function () {
+                    const div = L.DomUtil.create('div', 'info legend');
+                    let content = "";
+                    legendData.map((item) => {
+                        content += `<i class="bx bxs-${item.icon}" style="color: ${item.color}; font-size: 20px;"></i> ${item.text}<br>`;
+                    });
+                    div.innerHTML = content;
+                    return div;
+                }
+                legend.addTo(map);
             } catch (e) {
                 console.error(e);
             }
         }
 
         // Prevents users from getting trapped on the map when scrolling a long page.
-        if(useGestureHandling) {
+        if (useGestureHandling) {
             map.on('fullscreenchange', function () {
                 if (map.isFullscreen()) {
                     console.log('entered fullscreen');
@@ -169,8 +179,8 @@ function Leaflet() {
 
                     // Determine color
                     let color = 'black';
-                    if(useSingleColor) {
-                        if(CSS.supports('color', singleColor)) {
+                    if (useSingleColor) {
+                        if (CSS.supports('color', singleColor)) {
                             color = singleColor;
                         }
                     } else {
@@ -183,8 +193,6 @@ function Leaflet() {
                             }
                         }
                     }
-
-
 
 
                     if (isValidLocation(lat, lon) && iconSize > 0) {
@@ -206,6 +214,13 @@ function Leaflet() {
             });
         }
 
+
+        if (firstRun.current) {
+            goToHome();
+            firstRun.current = false;
+        }
+
+
     }, [records,
         latitudeFieldId,
         longitudeFieldId,
@@ -219,7 +234,33 @@ function Leaflet() {
         singleIconName,
         useSingleIconSize,
         singleIconSize,
-        useClustering,]);
+        useClustering,
+    ]);
+
+    function goToHome() {
+
+        if (useFixesStartLocation) {
+            mapRef.current.setView([startLatitude || 0, startLongitude || 0], startZoom || 8);
+        } else {
+
+
+            // 3) Now that *all* markers are on the map, grab the bounds…
+            const bounds = mapRef.current.getBounds();
+            if (bounds.isValid()) {
+                // 4a) Fit to show all markers (with 10% padding)
+                mapRef.current.fitBounds(bounds.pad(0.1), {animate: false});
+
+                // 4b) Then recenter on *your* “primary” marker
+                //    (replace this with whatever record you want centered)
+                const primary = records[0];
+                const primaryLatLng = [
+                    primary.getCellValue(latitudeFieldId),
+                    primary.getCellValue(longitudeFieldId),
+                ];
+                mapRef.current.setView(primaryLatLng, mapRef.current.getZoom());
+            }
+        }
+    }
 
     return (
         <Box display="flex" flexDirection="column">
@@ -229,6 +270,7 @@ function Leaflet() {
         </Box>
     );
 }
+
 
 /**
  * Check if the location is valid

@@ -29,6 +29,10 @@ export const GlobalConfigKeys = {
     SHOW_LEGEND: 'showLegend',
     LEGEND_POSITION: 'legendPosition',
     GESTUREHANDLING: 'gestureHandling',
+    USE_FIXED_START_LOCATION: 'useFixedStartLocation',
+    START_LATITUDE: 'startLatitude',
+    START_LONGITUDE: 'startLongitude',
+    START_ZOOM: 'startZoom',
 };
 
 function Settings() {
@@ -176,15 +180,14 @@ function Settings() {
                             label="Use a single size for all markers"
                             size="large"
                         />
-                        {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) ? (
-                            <FormField label="Single Icon Size">
-                                <Input
-                                    type="number"
-                                    value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) || ''}
-                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE, e.target.value)}
-                                    placeholder="Enter icon size (e.g., 20)"
-                                />
-                            </FormField>) : (<>
+                        {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) ? (<FormField label="Single Icon Size">
+                            <Input
+                                type="number"
+                                value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) || ''}
+                                onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE, e.target.value)}
+                                placeholder="Enter icon size (e.g., 20)"
+                            />
+                        </FormField>) : (<>
                             <FormField label="Icon Size Field">
                                 <FieldPickerSynced
                                     table={table}
@@ -223,6 +226,37 @@ function Settings() {
                         size="large"
                     />
 
+                    <FormField label="Map start position">
+                        <Switch
+                            value={globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION) || false}
+                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_FIXED_START_LOCATION, value)}
+                            label="Set a custom start position"
+                            size="large"
+                        />
+                        {globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION) ? (
+                            <FormField label="Start position">
+                                <Input
+                                    type="number"
+                                    value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) || 0}
+                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE, e.target.value)}
+                                    placeholder="Start Latitude"
+                                />
+                                <Input
+                                    type="number"
+                                    value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) || 0}
+                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE, e.target.value)}
+                                    placeholder="Start Longitude"
+                                />
+                                <Input
+                                    type="number"
+                                    value={globalConfig.get(GlobalConfigKeys.START_ZOOM) || 0}
+                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM, e.target.value)}
+                                    placeholder="Start Zoom"
+                                />
+                            </FormField>) : (<>
+                        </>)}
+                    </FormField>
+
 
                 </Box>
             </details>
@@ -241,18 +275,15 @@ function Settings() {
 }
 
 
-const options = [
-    {value: "bottomleft", label: "Bottom Left"},
-    {value: "bottomright", label: "Bottom Right"},
-    {value: "topleft", label: "Top Left"},
-    {value: "topright", label: "Top Right"},
-];
+const options = [{value: "bottomleft", label: "Bottom Left"}, {
+    value: "bottomright", label: "Bottom Right"
+}, {value: "topleft", label: "Top Left"}, {value: "topright", label: "Top Right"},];
 
 function Legend() {
     const globalConfig = useGlobalConfig();
     const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]'
     let legend = "";
-    try{
+    try {
         legend = JSON.parse(legendJSON);
     } catch (e) {
         console.error(e);
@@ -272,13 +303,11 @@ function Legend() {
     const saveToGlobalConfig = () => {
         const value = items.map((e) => {
             return {
-                icon: e.icon,
-                color: e.color,
-                text: e.text
+                icon: e.icon, color: e.color, text: e.text
             }
         });
         const JSONValue = JSON.stringify(value)
-        globalConfig.setAsync(GlobalConfigKeys.LEGEND, JSONValue)
+        globalConfig.setAsync(GlobalConfigKeys.LEGEND, JSONValue).then();
     }
 
     useEffect(() => {
@@ -293,9 +322,7 @@ function Legend() {
 
     // Function to update a marker
     const updateMarker = (id, key, value) => {
-        setItems((prevItems) =>
-            prevItems.map((item) => (item.id === id ? {...item, [key]: value} : item))
-        );
+        setItems((prevItems) => prevItems.map((item) => (item.id === id ? {...item, [key]: value} : item)));
     };
 
     // Validation function
@@ -317,127 +344,119 @@ function Legend() {
             return;
         }
 
-        setItems((prevItems) => [
-            ...prevItems,
-            {id: Date.now(), ...newMarker},
-        ]);
+        setItems((prevItems) => [...prevItems, {id: Date.now(), ...newMarker},]);
         setNewMarker({icon: "", color: "#000000", text: ""}); // Reset the form
         setError(""); // Reset error
     };
 
-    return (
-        <div>
-            <h3>Legend</h3>
+    return (<div>
+        <h3>Legend</h3>
 
-            <Switch
-                value={globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false}
-                onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.SHOW_LEGEND, value)}
-                label="Enable legend"
-                size="large"
-            />
+        <Switch
+            value={globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false}
+            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.SHOW_LEGEND, value)}
+            label="Enable legend"
+            size="large"
+        />
 
-            <Text>
-                Select the position where the legend will appear on the map.
-            </Text>
+        <Text>
+            Select the position where the legend will appear on the map.
+        </Text>
 
-            <Select
-                options={options}
-                value={globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft'} // Default position
-                onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, value)}
-                width="320px"
-            />
+        <Select
+            options={options}
+            value={globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft'} // Default position
+            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, value)}
+            width="320px"
+        />
 
-            <br/>
+        <br/>
 
-            <ReactSortable
-                list={items}
-                setList={setItems}
-                handle=".handle"
-                animation={150}
-            >
-                {items.map((item) => (
-                    <div key={item.id} className="legend-item">
+        <ReactSortable
+            list={items}
+            setList={setItems}
+            handle=".handle"
+            animation={150}
+        >
+            {items.map((item) => (<div key={item.id} className="legend-item">
                         <span className="handle" style={{cursor: "grab", marginRight: 8}}>
                             <i className="bx bx-move"/>
                         </span>
-                        <i
-                            className={`bx bxs-${item.icon}`}
-                            style={{
-                                color: item.color,
-                                fontSize: "20px",
-                                marginRight: 8,
-                            }}
-                        />
-                        <Input
-                            type="text"
-                            value={item.text}
-                            onChange={(e) => updateMarker(item.id, "text", e.target.value)}
-                            placeholder="Marker description"
-                        />
-                        <input
-                            type="color"
-                            value={item.color}
-                            onChange={(e) => updateMarker(item.id, "color", e.target.value)}
-                            style={{marginRight: 8}}
-                        />
-                        <Input
-                            type="text"
-                            value={item.icon}
-                            onChange={(e) => updateMarker(item.id, "icon", e.target.value)}
-                            placeholder="Icon Name (e.g., map)"
-                            style={{marginRight: 8}}
-                        />
-                        <button
-                            onClick={() => deleteMarker(item.id)}
-                            style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "red",
-                            }}
-                        >
-                            <i className="bx bx-trash"/>
-                        </button>
-                    </div>
-                ))}
-            </ReactSortable>
-
-            <h4>Add New Marker</h4>
-            <Box className="add-marker-form">
+                <i
+                    className={`bx bxs-${item.icon}`}
+                    style={{
+                        color: item.color, fontSize: "20px", marginRight: 8,
+                    }}
+                />
                 <Input
                     type="text"
-                    value={newMarker.text}
-                    onChange={(e) => setNewMarker({...newMarker, text: e.target.value})}
-                    placeholder="Marker Text"
-                    style={{marginRight: 8}}
-                    required={true}
+                    value={item.text}
+                    onChange={(e) => updateMarker(item.id, "text", e.target.value)}
+                    placeholder="Marker description"
                 />
                 <input
                     type="color"
-                    value={newMarker.color}
-                    onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
+                    value={item.color}
+                    onChange={(e) => updateMarker(item.id, "color", e.target.value)}
                     style={{marginRight: 8}}
                 />
                 <Input
                     type="text"
-                    value={newMarker.icon}
-                    onChange={(e) => setNewMarker({...newMarker, icon: e.target.value})}
+                    value={item.icon}
+                    onChange={(e) => updateMarker(item.id, "icon", e.target.value)}
                     placeholder="Icon Name (e.g., map)"
                     style={{marginRight: 8}}
-                    required={true}
                 />
-                <Button onClick={addMarker} style={{cursor: "pointer"}}>
-                    Add Marker
-                </Button>
+                <button
+                    onClick={() => deleteMarker(item.id)}
+                    style={{
+                        background: "none", border: "none", cursor: "pointer", color: "red",
+                    }}
+                >
+                    <i className="bx bx-trash"/>
+                </button>
+            </div>))}
+        </ReactSortable>
 
-                {error && (
-                    <Text style={{color: "red", marginTop: 8}}>
-                        <strong>{error}</strong>
-                    </Text>
-                )}
-            </Box>
-        </div>
-    );
+        <h4>Add New Marker</h4>
+        <Box className="add-marker-form">
+            <Input
+                type="text"
+                value={newMarker.text}
+                onChange={(e) => setNewMarker({...newMarker, text: e.target.value})}
+                placeholder="Marker Text"
+                style={{marginRight: 8}}
+                required={true}
+            />
+            <input
+                type="color"
+                value={newMarker.color}
+                onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
+                style={{marginRight: 8}}
+            />
+            <Input
+                type="text"
+                value={newMarker.icon}
+                onChange={(e) => setNewMarker({...newMarker, icon: e.target.value})}
+                placeholder="Icon Name (e.g., map)"
+                style={{marginRight: 8}}
+                required={true}
+            />
+            <Button onClick={addMarker} style={{cursor: "pointer"}}>
+                Add Marker
+            </Button>
+
+            {error && (<Text style={{color: "red", marginTop: 8}}>
+                <strong>{error}</strong>
+            </Text>)}
+
+
+        </Box>
+        <p>
+            Go to <a href="https://v2.boxicons.com/" target="_blank"
+                     rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names.
+        </p>
+    </div>);
 }
 
 function About() {
