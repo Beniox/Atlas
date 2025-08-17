@@ -105,7 +105,7 @@ We track everything in **GitHub Issues**:
 
 - **Report a bug:** [Open a bug report](../../issues/new?template=bug_report.md)
 - **Request a feature:** [Suggest a feature](../../issues/new?template=feature_request.md)
-- **Ask a question / support:** [Start here](../../issues/new)
+- **Ask a question / support:** [Start here](../../issues/new?template=help-request.md)
 
 > Please include screenshots and clear steps to reproduce when reporting bugs.
 
