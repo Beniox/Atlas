@@ -234,25 +234,31 @@ function Settings() {
                             size="large"
                         />
                         {globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION) ? (
-                            <FormField label="Start position">
-                                <Input
-                                    type="number"
-                                    value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) || 0}
-                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE, e.target.value)}
-                                    placeholder="Start Latitude"
-                                />
-                                <Input
-                                    type="number"
-                                    value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) || 0}
-                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE, e.target.value)}
-                                    placeholder="Start Longitude"
-                                />
-                                <Input
-                                    type="number"
-                                    value={globalConfig.get(GlobalConfigKeys.START_ZOOM) || 0}
-                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM, e.target.value)}
-                                    placeholder="Start Zoom"
-                                />
+                            <FormField label="">
+                                <FormField label="Start Latitude">
+                                    <Input
+                                        type="number"
+                                        value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) || 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE, e.target.value)}
+                                        placeholder="Start Latitude"
+                                    />
+                                </FormField>
+                                <FormField label="Start Longitude">
+                                    <Input
+                                        type="number"
+                                        value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) || 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE, e.target.value)}
+                                        placeholder="Start Longitude"
+                                    />
+                                </FormField>
+                                <FormField label="Start Zoom">
+                                    <Input
+                                        type="number"
+                                        value={globalConfig.get(GlobalConfigKeys.START_ZOOM) || 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM, e.target.value)}
+                                        placeholder="Start Zoom"
+                                    />
+                                </FormField>
                             </FormField>) : (<>
                         </>)}
                     </FormField>

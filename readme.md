@@ -1,141 +1,129 @@
-# Atlas – Interactive Airtable Maps with Leaflet
+<p align="center">
+  <a href="https://github.com/Beniox/Atlas">
+    <img src="media/logo.svg" alt="Atlas logo" width="160">
+  </a>
+</p>
 
-This project seamlessly bridges Airtable and Leaflet.js on top of OpenStreetMap to let you transform your geo-enabled Airtable base into a fully interactive, customizable map—directly inside the Airtable interface.
-
-![Live map inside Airtable](media/airtable.png)
-
-# Features
-
-- **Instant OpenStreetMap integration**  
-  Renders a responsive Leaflet map with standard OSM tiles.
-
-- **Real-time data syncing**  
-  Pulls latitude/longitude, names, colors, icons, and sizes straight from your Airtable fields.
-
-- **Rich, on-click popups**  
-  Display descriptions when users click a marker.
-
-- **Flexible marker styling**  
-  Choose per-record colors, SVG or BoxIcon icons, and dynamic sizing—or apply a single global style.
-
-- **Built-in legend & clustering**  
-  Drag-and-drop legend entries, toggle clusters on/off for large datasets.
-
-- **Full-screen & gesture controls**  
-  Enable fullscreen mode, restrict zoom to ctrl+scroll, and configure other map behaviors via simple switches.
-
-- **No-code settings panel**  
-  Configure table, field mapping, filters, and display options with Airtable Blocks UI pickers—no API keys or manual JSON edits.
-
-
-## Table of Content
-- [Technologies Used](#technologies-used)
-- [Configuration](#configuration)
-  - [Database](#database)
-    - [Table](#table)
-    - [Latitude Field](#latitude-field)
-    - [Longitude Field](#longitude-field)
-  - [Marker](#marker)
-    - [Name](#name)
-    - [Colors](#colors)
-    - [Icon](#icon)
-    - [Size](#size)
-  - [Map Config](#map-config)
-    - [Clustering](#clustering)
-    - [Fullscreen](#fullscreen)
-  - [Legend](#legend)
-    - [Enable Legend](#enable-legend)
-    - [Legend Position](#legend-position)
-    - [Legend Content](#legend-content)
-- [Install](#install)
-  - [Requirements](#requirements)
-  - [Installation Steps](#installation-steps)
-- [Roadmap](#roadmap)
+<h1 align="center">Atlas – Interactive Airtable Maps with Leaflet</h1>
+<p align="center">Turn any Airtable table with latitude/longitude fields into a beautiful, interactive map — no code.</p>
 
 ---
 
-## Technologies Used
-- [Leaflet.js](https://leafletjs.com/): A powerful JavaScript library for building interactive maps.
-- [Airtable Blocks](https://airtable.com/developers/blocks): A platform for creating custom apps and integrations inside Airtable.
-- [React](https://react.dev/): A JavaScript library for building dynamic user interfaces.
-- [Boxicons](https://boxicons.com/): A versatile icon library.
-- [Leaflet.Fullscreen](https://github.com/Leaflet/Leaflet.fullscreen): A plugin to enable fullscreen functionality for Leaflet maps.
-- [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster): Provides animated marker clustering functionality for Leaflet
-- [Leaflet.GestureHandling](https://github.com/elmarquis/Leaflet.GestureHandling): A plugin to enable gesture handling for Leaflet maps.
+
+## What you can do
+
+- See your records on an OpenStreetMap-powered map (via Leaflet)
+- Click markers to open popups with details
+- Style markers by **color**, **icon**, and **size** (static or from fields)
+- Turn **clustering** on/off for large datasets
+- Show/hide a **legend** (drag-and-drop order)
+- Go **fullscreen** and use friendly gesture controls
 
 ---
 
-# Configuration
 
-## Database
-### Table
-Select the Airtable table to be used with the map.
+##  Configure the map (in the extension settings)
 
-### Latitude Field
-Choose a numeric field with at least four decimal points for latitude values.
+**Database**
 
-### Longitude Field
-Choose a numeric field with at least four decimal points for longitude values.
+- **Table:** choose the table with your locations.
+- **Latitude field:** numeric field (ideally 4+ decimals).
+- **Longitude field:** numeric field (ideally 4+ decimals).
 
-*If the latitude or longitude field value is out of range or empty, the corresponding marker will not be displayed.*
+**Marker**
 
-## Marker
-### Name
-Define the name of the marker, which must be set from a field in the Airtable table. This name will be used in popups or labels to provide context.
-### Colors
-You can configure marker colors in two ways:
-#### Static Colors
-All markers will share the same color. Click the color field in the settings panel to open a color picker.
+- **Name:** pick a field (used in popups/labels).
+- **Color:**
+    - *Static:* choose one color for all markers.
+    - *Dynamic:* drive color from a field. Works with:
+        - Single line text: any valid CSS color (`red`, `#00ff00`, `rgba(0,0,0,0.5)`)
+        - Single select: use the option’s color (enable color in Airtable formatting)
+- **Icon:**
+    - *Static:* pick one icon for all markers.
+    - *Dynamic:* pick a field with icon names from [Boxicons](https://v2.boxicons.com/).
+- **Size:**
+    - *Static:* one size for all.
+    - *Dynamic:* pick a numeric field. 0 hides the marker; empty/invalid defaults to 32.
 
-#### Dynamic Colors
-Markers can have dynamic colors based on Airtable table data:
-- Single Line Text: Use valid CSS color names (e.g., `red`, `blue`), hex codes (e.g., `#00ff00` for green) or color objects (`rgba(r,g,b,a)` to have an alpha valve). See [MDN colors](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value) for usable colors
-- Single Select: Enable color-code options in the formatting section of your Airtable table and select a color.
+**Map config**
 
-### Icon
-Set the icon type for the markers. Icons can be configured either statically or dynamically, similar to colors:
+- **Clustering:** group nearby markers to declutter.
+- **Fullscreen:** toggle fullscreen mode.
+- **Gesture handling:** friendly scroll/zoom (desktop: Ctrl+scroll; mobile: pinch/drag).
+- **Map start position:** 
+  - *Fit to data (default):* Automatically centers and zooms the map to include all records with valid **Latitude** and **Longitude**.
+  - *Custom center + zoom:* Enter a **Latitude**, **Longitude**, and **Zoom** to use every time the map loads (handy for demos or when a view starts empty).
 
-- **Static Icons**: Select a specific icon to apply to all markers.
-- **Dynamic Icons**: Assign icons based on an Airtable table field. Valid icons include any from [Boxicons](https://boxicons.com/).
+**Legend**
 
-If the icon field is empty or contains an invalid value, a default marker icon will be used.
+- **Enable legend**: show/hide
+- **Position**: top-left • top-right • bottom-left • bottom-right
+- **Content**: define items with name, color, and icon; drag to reorder
 
-### Size
-
-Marker size can be configured either statically or dynamically:
-
-This allows you to customize the map markers based on your data attributes:
-
-- **Static Size**: Set a uniform size for all markers.
-- **Dynamic Size**: Define marker size based on an Airtable table field.
-
-If the size is set to `0`, the marker will not be displayed. If the field value is missing or invalid, the marker size will default to `32`.
+---
 
 
-## Map config
-### Clustering
-Enable or disable marker clustering. When enabled, nearby markers are grouped together to improve map readability, especially at lower zoom levels.
+## Example data
 
-### Fullscreen
+If you’re testing, add a few rows to your table like:
 
-Toggle fullscreen functionality for the map. This option allows users to expand the map to fill the entire screen, enhancing usability for detailed exploration.
+| Name     | Latitude | Longitude | Color            | Icon | Size |
+| -------- | -------- | --------- | ---------------- | ---- | ---- |
+| Cafe A   | 52.5200  | 13.4050   | teal             | coffee | 28   |
+| Museum B | 48.8566  | 2.3522    | #ff6600          | bank | 34   |
+| Park C   | 51.5074  | -0.1278   | rgba(0,128,0,.8) | tree | 32   |
 
-### Gesture Handling
-Toggle gesture handling for the map. When enabled, the map will respond to touch gestures on mobile devices, such as pinch-to-zoom and swipe-to-pan.
-On desktop devices, the map will respond to ctrl + scroll events for zooming.
 
-## Legend
-The legend displays the marker name, color, and icon for each marker on the map. It can be toggled on or off using the settings panel.
 
-### Enable Legend
-Toggle the legend on or off.
+A CSV file with example data can be found [here](./examples/uk_locations.csv)
 
-### Legend Position
-Choose the position of the legend on the map: `top-left`, `top-right`, `bottom-left`, or `bottom-right`.
+---
 
-### Legend Content
+## Troubleshooting
 
-Define each legend item with a name, color, and icon.
+- **No markers appear**
+    - Ensure lat/long fields are numeric and within valid ranges
+    - Check you selected the correct table/fields in the sidebar
+    - Check that you have the correct icon name
+- **Performance feels slow**
+    - Turn on **Clustering**
+
+---
+
+## Privacy & data
+
+- Your data stays in **Airtable**; there’s **no external server**.
+- Map tiles are fetched from **OpenStreetMap** (via Leaflet).
+- Icons are fetched from **Boxicons**.
+- No analytics or tracking are built in.
+
+---
+
+##  Feedback, bugs & feature requests
+
+We track everything in **GitHub Issues**:
+
+- **Report a bug:** [Open a bug report](../../issues/new?template=bug_report.md)
+- **Request a feature:** [Suggest a feature](../../issues/new?template=feature_request.md)
+- **Ask a question / support:** [Start here](../../issues/new)
+
+> Please include screenshots and clear steps to reproduce when reporting bugs.
+
+
+##  Tech stack
+
+- **Leaflet.js** (map)
+- **Airtable Extensions** (UI, data)
+- **React** (component framework)
+- Plugins: Leaflet.Fullscreen • Leaflet.markercluster • Leaflet.GestureHandling • Boxicons
+
+---
+
+## Roadmap (short)
+
+- more Cluster Marker [Options](https://github.com/Leaflet/Leaflet.markercluster?tab=readme-ov-file#other-options) 
+
+*Have an idea?* Open a **feature request**!
 
 ---
 
@@ -172,7 +160,3 @@ Define each legend item with a name, color, and icon.
 [//]: # (```)
 
 [//]: # (This will fetch the latest version from the repository, override your local version, and upload it to your Airtable base.)
-
-
-# Roadmap
-- [ ] printing the map

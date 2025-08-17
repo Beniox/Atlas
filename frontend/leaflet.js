@@ -14,12 +14,11 @@ import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
-// import 'leaflet-fullscreen/dist/leaflet.fullscreen.css'
 import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
 
 loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css").then();
 
-// import { GestureHandling } from "leaflet-gesture-handling";
+import "leaflet-gesture-handling"
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
