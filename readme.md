@@ -43,7 +43,7 @@
         - Single select: use the option’s color (enable color in Airtable formatting)
 - **Icon:**
     - *Static:* pick one icon for all markers.
-    - *Dynamic:* pick a field with icon names from [Boxicons](https://v2.boxicons.com/).
+    - *Dynamic:* pick a field with icon names from [Boxicons](https://v2.boxicons.com/). Currently only the solid variants are supported.
 - **Size:**
     - *Static:* one size for all.
     - *Dynamic:* pick a numeric field. 0 hides the marker; empty/invalid defaults to 32.

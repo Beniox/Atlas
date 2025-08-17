@@ -460,7 +460,7 @@ function Legend() {
         </Box>
         <p>
             Go to <a href="https://v2.boxicons.com/" target="_blank"
-                     rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names.
+                     rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names. Currently only the solid variants are supported.
         </p>
     </div>);
 }
