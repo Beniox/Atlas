@@ -132,10 +132,8 @@ function Leaflet() {
         if (useGestureHandling) {
             map.on('fullscreenchange', function () {
                 if (map.isFullscreen()) {
-                    console.log('entered fullscreen');
                     map.gestureHandling.disable();
                 } else {
-                    console.log('exited fullscreen');
                     map.gestureHandling.enable();
                 }
             });
