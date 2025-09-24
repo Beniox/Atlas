@@ -87,8 +87,8 @@ function legendItemHTML(item) {
     let iconHTML;
     if (className) {
         iconHTML = `<i class="${className}" style="color:${color};font-size:20px;vertical-align:middle;"></i>`;
-    } else if (hasBoxiconGlyph("bx-circle")) {
-        iconHTML = `<i class="bx bx-circle" style="color:${color};font-size:20px;vertical-align:middle;"></i>`;
+    } else if (hasBoxiconGlyph("bxs-circle")) {
+        iconHTML = `<i class="bx bxs-circle" style="color:${color};font-size:20px;vertical-align:middle;"></i>`;
     } else {
         iconHTML = `<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${color};border:1px solid rgba(0,0,0,.25);vertical-align:middle;"></span>`;
     }
