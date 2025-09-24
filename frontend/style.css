@@ -45,6 +45,7 @@ details > div {
 /*Legend in the settings*/
 .legend-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
     padding: 8px;
     background: #f9f9f9;
@@ -110,4 +111,173 @@ details > div {
 /* Add some spacing between individual legend items */
 .info.legend br {
     margin-bottom: 5px;
+}
+
+
+/* Scope everything under .atlas-legend to avoid collisions */
+.atlas-legend {
+    --gap: 8px;
+    --row-margin: 8px;
+    --icon-size: 20px;
+    --error: #d93025;
+    --muted: #666;
+}
+
+.atlas-legend__title,
+.atlas-legend__subtitle {
+    margin: 0.5rem 0;
+}
+
+.atlas-legend__hint {
+    margin-top: 0.25rem;
+}
+
+.atlas-legend__spacer {
+    height: 12px;
+}
+
+/* Rows / layout */
+.atlas-legend__row {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    margin-bottom: var(--row-margin);
+    flex-wrap: wrap;
+}
+
+/* Drag handle */
+.atlas-legend__handle {
+    cursor: grab;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Icon / fallback dot */
+.atlas-legend__icon {
+    font-size: var(--icon-size);
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.atlas-legend__dot {
+    display: inline-block;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* Inputs */
+.atlas-legend__field {
+    display: inline-block;
+}
+
+.atlas-legend__field--name {
+    width: 28%;
+    min-width: 200px;
+}
+
+.atlas-legend__field--icon {
+    width: 300px;
+    max-width: 100%;
+}
+
+.atlas-legend__input {
+    width: 100%;
+}
+
+.atlas-legend__input--error {
+    border-color: var(--error) !important;
+}
+
+/* Color input */
+.atlas-legend__color {
+    width: 36px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+/* Delete button */
+.atlas-legend__delete {
+    background: none;
+    border: none;
+    color: #c62828;
+    cursor: pointer;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+.atlas-legend__delete:hover {
+    opacity: 0.85;
+}
+
+/* Messages / errors / suggestions */
+.atlas-legend__messages {
+    width: 100%;
+    margin-left: 28px;
+}
+
+.atlas-legend__error {
+    color: var(--error);
+    display: block;
+}
+
+.atlas-legend__error--block {
+    margin-top: 4px;
+}
+
+.atlas-legend__suggestions {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.atlas-legend__pill {
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+
+.atlas-legend__pill:hover {
+    background: #eee;
+}
+
+/* Add form */
+.atlas-legend__add {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.atlas-legend__addbtn[disabled] {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Footnote */
+.atlas-legend__footnote {
+    margin-top: 8px;
+    color: var(--muted);
+}
+
+Input {
+    border: 1px solid black !important;
+}
+
+.flex {
+    display: flex;
+}
+
+select {
+    padding-bottom: 5px !important;
+    padding-top: 5px !important;
 }

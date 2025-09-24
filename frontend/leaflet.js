@@ -25,6 +25,105 @@ import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
 
 // import 'leaflet-edgebuffer';
 
+
+// Safe text
+function escapeHTML(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+// Does a Boxicons class (e.g., "bx-home"/"bxs-map") render a glyph?
+function hasBoxiconGlyph(iconClass) {
+    if (!iconClass) return false;
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;";
+    const i = document.createElement("i");
+    i.className = `bx ${iconClass}`;
+    i.style.cssText = "display:inline-block;font-size:24px;";
+    wrap.appendChild(i);
+    document.body.appendChild(wrap);
+    const cs = getComputedStyle(i, "::before");
+    const raw = cs && cs.content ? cs.content : "";
+    document.body.removeChild(wrap);
+    const content = raw.replace(/^['"]|['"]$/g, "");
+    return !!content && content !== "normal" && content !== "none";
+}
+
+// Resolve the best icon class to preview WITHOUT changing the stored value.
+// Returns a string like "bx bx-home" / "bx bxs-map", or null for fallback.
+function resolveBoxiconClass(raw) {
+    const s = String(raw || "").trim().toLowerCase().replace(/\s+/g, "");
+    if (!s) return null;
+
+    // Already prefixed?
+    if (s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-")) {
+        return hasBoxiconGlyph(s) ? `bx ${s}` : null;
+    }
+
+    // Bare name: try normal first, then solid
+    const normal = `bx-${s}`;
+    const solid  = `bxs-${s}`;
+    if (hasBoxiconGlyph(normal)) return `bx ${normal}`;
+    if (hasBoxiconGlyph(solid))  return `bx ${solid}`;
+    return null;
+}
+
+// Build one legend row's HTML (icon + label); uses circle fallback if needed
+function legendItemHTML(item) {
+    const color = item?.color || "#000000";
+    const className = resolveBoxiconClass(item?.icon);
+
+    let iconHTML;
+    if (className) {
+        iconHTML = `<i class="${className}" style="color:${color};font-size:20px;vertical-align:middle;"></i>`;
+    } else if (hasBoxiconGlyph("bx-circle")) {
+        iconHTML = `<i class="bx bx-circle" style="color:${color};font-size:20px;vertical-align:middle;"></i>`;
+    } else {
+        iconHTML = `<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${color};border:1px solid rgba(0,0,0,.25);vertical-align:middle;"></span>`;
+    }
+
+    const label = escapeHTML(item?.text || "");
+    return `${iconHTML} ${label}`;
+}
+
+let atlasLegendCtrl = null;
+
+/**
+ * Renders/removes the legend based on settings.
+ * @param {L.Map} map
+ * @param {boolean} showLegend
+ * @param {"topleft"|"topright"|"bottomleft"|"bottomright"} legendPosition
+ * @param {Array<{icon?:string,color?:string,text?:string}>} legendData
+ */
+function renderAtlasLegend(map, showLegend, legendPosition, legendData) {
+    // remove previous (if any)
+    if (atlasLegendCtrl) {
+        try { map.removeControl(atlasLegendCtrl); } catch {}
+        atlasLegendCtrl = null;
+    }
+    if (!showLegend) return;
+
+    atlasLegendCtrl = L.control({ position: legendPosition });
+    atlasLegendCtrl.onAdd = function () {
+        const div = L.DomUtil.create("div", "atlas-legend info legend");
+        div.setAttribute("aria-label", "Legend");
+
+        const rows = (legendData || []).map(legendItemHTML);
+        div.innerHTML = rows.join("<br>");
+
+        // prevent scroll/clicks in the legend from affecting the map
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    atlasLegendCtrl.addTo(map);
+}
+
+
 function Leaflet() {
     const base = useBase();
     const globalConfig = useGlobalConfig();
@@ -111,21 +210,12 @@ function Leaflet() {
 
         if (showLegend) {
             try {
-                // add legend
-                const legend = L.control({position: legendPosition});
-                legend.onAdd = function () {
-                    const div = L.DomUtil.create('div', 'info legend');
-                    let content = "";
-                    legendData.map((item) => {
-                        content += `<i class="bx bxs-${item.icon}" style="color: ${item.color}; font-size: 20px;"></i> ${item.text}<br>`;
-                    });
-                    div.innerHTML = content;
-                    return div;
-                }
-                legend.addTo(map);
+                renderAtlasLegend(map, true, legendPosition, legendData);
             } catch (e) {
                 console.error(e);
             }
+        } else {
+            renderAtlasLegend(map, false); // ensures any old legend is removed
         }
 
         // Prevents users from getting trapped on the map when scrolling a long page.

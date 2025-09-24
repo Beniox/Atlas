@@ -1,12 +1,22 @@
 import {
-    Box, FormField, TablePickerSynced, FieldPickerSynced, Switch, Input, Text, Button, Select
+    Box,
+    Button,
+    FieldPickerSynced,
+    FormField,
+    Input,
+    Select,
+    Switch,
+    TablePickerSynced,
+    Text,
+    useBase,
+    useGlobalConfig
 } from '@airtable/blocks/ui';
 import {FieldType} from "@airtable/blocks/models";
-import React, {useEffect, useState} from 'react';
-import {useGlobalConfig, useBase} from '@airtable/blocks/ui';
+import React from 'react';
 import {ErrorBoundary} from "react-error-boundary";
 import {ReactSortable} from "react-sortablejs";
 import 'boxicons/css/boxicons.min.css';
+import "./style.css"
 
 // Global Config Keys
 export const GlobalConfigKeys = {
@@ -280,190 +290,451 @@ function Settings() {
     </ErrorBoundary>);
 }
 
-
-const options = [{value: "bottomleft", label: "Bottom Left"}, {
-    value: "bottomright", label: "Bottom Right"
-}, {value: "topleft", label: "Top Left"}, {value: "topright", label: "Top Right"},];
+function FallbackDot({color, size = 20, title = "Fallback icon"}) {
+    return (
+        <span
+            aria-hidden="true"
+            title={title}
+            style={{
+                display: "inline-block",
+                width: size,
+                height: size,
+                borderRadius: "50%",
+                backgroundColor: color || "#888",
+                border: "1px solid rgba(0,0,0,.2)",
+                marginRight: 4,
+                verticalAlign: "middle",
+            }}
+        />
+    );
+}
 
 function Legend() {
-    const globalConfig = useGlobalConfig();
-    const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]'
-    let legend = "";
-    try {
-        legend = JSON.parse(legendJSON);
-    } catch (e) {
-        console.error(e);
+    // ----------------------------- utils --------------------------------------
+    const HEX6 = /^#[0-9A-Fa-f]{6}$/;
+
+    const uniqueId = () => {
+        try {
+            return crypto.randomUUID();
+        } catch(e) {
+            return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+    };
+
+    // Does a given Boxicons class (e.g., "bx-home" / "bxs-map") render a ::before glyph?
+    function hasGlyph(iconClass) {
+        if (typeof window === "undefined") return true; // SSR-safe no-op
+        if (!iconClass) return false;
+        const wrap = document.createElement("div");
+        wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;";
+        const i = document.createElement("i");
+        i.className = `bx ${iconClass}`;
+        i.style.cssText = "display:inline-block;font-size:24px;";
+        wrap.appendChild(i);
+        document.body.appendChild(wrap);
+        const cs = getComputedStyle(i, "::before");
+        const raw = cs?.content || "";
+        document.body.removeChild(wrap);
+        const content = raw.replace(/^['"]|['"]$/g, "");
+        return !!content && content !== "normal" && content !== "none";
     }
-    // should have each an id, that is unique
-    legend.map((item, index) => {
-        item.id = index;
+
+    // Resolve preview & suggestions for a raw icon input.
+    // Bare names: try normal (bx-) then solid (bxs-). If both exist -> preview normal + suggest solid.
+    function resolveIcon(raw) {
+        const s = (raw || "").trim().toLowerCase().replace(/\s+/g, "");
+        if (!s) return {previewClass: "", suggestions: [], error: ""};
+
+        const hasPrefix = s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-");
+        if (hasPrefix) {
+            const ok = hasGlyph(s);
+            const suggestions = [];
+            if (s.startsWith("bx-")) {
+                const alt = "bxs-" + s.slice(3);
+                if (hasGlyph(alt)) suggestions.push(alt);
+            } else if (s.startsWith("bxs-")) {
+                const alt = "bx-" + s.slice(4);
+                if (hasGlyph(alt)) suggestions.push(alt);
+            }
+            return {previewClass: ok ? `bx ${s}` : "", suggestions, error: ok ? "" : "Icon not found."};
+        }
+
+        const name = s;
+        const normal = `bx-${name}`;
+        const solid = `bxs-${name}`;
+        const normalOk = hasGlyph(normal);
+        const solidOk = hasGlyph(solid);
+
+        if (normalOk && solidOk) return {previewClass: `bx ${normal}`, suggestions: [solid], error: ""};
+        if (normalOk) return {previewClass: `bx ${normal}`, suggestions: [], error: ""};
+        if (solidOk) return {previewClass: `bx ${solid}`, suggestions: [], error: ""};
+        return {previewClass: "", suggestions: [], error: "Icon not found."};
+    }
+
+    // Acceptable to add? (empty => allowed circle; non-empty must resolve)
+    function isValidIconOrEmpty(raw) {
+        const s = (raw || "").trim();
+        if (!s) return true;
+        const {previewClass} = resolveIcon(s);
+        return !!previewClass;
+    }
+
+    // Render preview: resolved icon -> that class; else try bx-circle; else dot
+    function IconPreview({previewClass, color, title}) {
+        if (previewClass) {
+            return <i className={previewClass} style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
+                      title={title}/>;
+        }
+        if (hasGlyph("bx-circle")) {
+            return <i className="bx bx-circle" style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
+                      title={title || "circle"}/>;
+        }
+        return <FallbackDot color={color} title={title}/>;
+    }
+
+    const sanitize = (item, idx) => ({
+        id: item?.id || uniqueId() || idx,
+        text: (item?.text || "").trim(),
+        color: (item?.color || "#000000").trim(),
+        icon: (item?.icon || "").trim(), // keep EXACT input (no auto-prefixing)
     });
 
-    const [newMarker, setNewMarker] = useState({icon: "", color: "#000000", text: ""});
-    const [error, setError] = useState("");
+    // ------------------------- global config ----------------------------------
+    const globalConfig = useGlobalConfig();
+    const LEGEND_POSITIONS = [
+        {value: "topleft", label: "Top left"},
+        {value: "topright", label: "Top right"},
+        {value: "bottomleft", label: "Bottom left"},
+        {value: "bottomright", label: "Bottom right"},
+    ];
 
+    const showLegend = globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false;
+    const position = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || "bottomleft";
 
-    const [items, setItems] = useState(legend || []);
+    const initialItems = React.useMemo(() => {
+        const raw = globalConfig.get(GlobalConfigKeys.LEGEND) || "[]";
+        try {
+            const arr = JSON.parse(raw);
+            return Array.isArray(arr) ? arr.map(sanitize) : [];
+        } catch (e) {
+            console.error("[Legend] invalid LEGEND JSON:", e);
+            return [];
+        }
+    }, []); // parse once
 
+    // ------------------------------ state -------------------------------------
+    const [items, setItems] = React.useState(initialItems);
+    const [newMarker, setNewMarker] = React.useState({text: "", color: "#000000", icon: ""});
+    const [formError, setFormError] = React.useState("");
+    // Track per-item "touched" state for name & icon separately
+    const [touched, setTouched] = React.useState({}); // { [id]: { text?:boolean, icon?:boolean } }
+    // Track add-form touched state
+    const [addTouched, setAddTouched] = React.useState({text: false, icon: false});
 
-    const saveToGlobalConfig = () => {
-        const value = items.map((e) => {
-            return {
-                icon: e.icon, color: e.color, text: e.text
+    // ---------------------------- persistence ---------------------------------
+    const saveRef = React.useRef(null);
+    React.useEffect(() => {
+        if (saveRef.current) clearTimeout(saveRef.current);
+        saveRef.current = setTimeout(async () => {
+            try {
+                const payload = items.map(({id, text, color, icon}) => ({id, text, color, icon}));
+                await globalConfig.setAsync(GlobalConfigKeys.LEGEND, JSON.stringify(payload));
+            } catch (e) {
+                console.error("[Legend] save failed:", e);
             }
-        });
-        const JSONValue = JSON.stringify(value)
-        globalConfig.setAsync(GlobalConfigKeys.LEGEND, JSONValue).then();
-    }
+        }, 300);
+        return () => clearTimeout(saveRef.current);
+    }, [items, globalConfig]);
 
-    useEffect(() => {
-        saveToGlobalConfig()
-    }, [items])
+    // --------------------------- validation -----------------------------------
+    const nameError = (s) => (!s.trim() ? "Name is required." : "");
+    const iconErrorMsg = "Icon not found. Leave empty to use a circle.";
 
-
-    // Function to delete a marker
-    const deleteMarker = (id) => {
-        setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-    };
-
-    // Function to update a marker
-    const updateMarker = (id, key, value) => {
-        setItems((prevItems) => prevItems.map((item) => (item.id === id ? {...item, [key]: value} : item)));
-    };
-
-    // Validation function
-    const validateMarker = (marker) => {
-        if (!marker.icon || !marker.text) {
-            return "Icon and text are required.";
-        }
-        if (!/^#[0-9A-Fa-f]{6}$/i.test(marker.color)) {
-            return "Please enter a valid hex color code (e.g., #FF5733).";
-        }
+    const validateMarker = (m) => {
+        if (nameError(m.text)) return nameError(m.text);
+        if (!HEX6.test(m.color)) return "Please enter a valid hex color (e.g., #FF5733).";
+        if (!isValidIconOrEmpty(m.icon)) return iconErrorMsg;
         return "";
     };
 
-    // Function to add a new marker with validation
-    const addMarker = () => {
-        const validationError = validateMarker(newMarker);
-        if (validationError) {
-            setError(validationError);
-            return;
-        }
+    // ------------------------------ actions -----------------------------------
+    const deleteMarker = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
 
-        setItems((prevItems) => [...prevItems, {id: Date.now(), ...newMarker},]);
-        setNewMarker({icon: "", color: "#000000", text: ""}); // Reset the form
-        setError(""); // Reset error
+    const updateMarker = (id, key, value) => {
+        setItems((prev) => prev.map((it) => (it.id === id ? {...it, [key]: value} : it)));
     };
 
-    return (<div>
-        <h3>Legend</h3>
+    const onItemTextChange = (id, value) => {
+        setTouched((prev) => ({...prev, [id]: {...(prev[id] || {}), text: true}}));
+        updateMarker(id, "text", value);
+    };
 
-        <Switch
-            value={globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false}
-            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.SHOW_LEGEND, value)}
-            label="Enable legend"
-            size="large"
-        />
+    const onItemIconChange = (id, value) => {
+        setTouched((prev) => ({...prev, [id]: {...(prev[id] || {}), icon: true}}));
+        updateMarker(id, "icon", value);
+    };
 
-        <Text>
-            Select the position where the legend will appear on the map.
-        </Text>
+    const addMarker = () => {
+        const err = validateMarker(newMarker);
+        if (err) {
+            setFormError(err);
+            return;
+        }
+        setItems((prev) => [...prev, {id: uniqueId(), ...newMarker}]);
+        setNewMarker({text: "", color: "#000000", icon: ""});
+        setFormError("");
+        setAddTouched({text: false, icon: false});
+    };
 
-        <Select
-            options={options}
-            value={globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft'} // Default position
-            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, value)}
-            width="320px"
-        />
+    // Live state for Add form
+    const addIconState = resolveIcon(newMarker.icon);
+    const addNameErr = nameError(newMarker.text);
+    const addIconErr = isValidIconOrEmpty(newMarker.icon) ? "" : iconErrorMsg;
 
-        <br/>
+    const canSubmit =
+        !addNameErr &&
+        HEX6.test(newMarker.color) &&
+        !addIconErr; // (empty icon counts as valid fallback)
 
-        <ReactSortable
-            list={items}
-            setList={setItems}
-            handle=".handle"
-            animation={150}
-        >
-            {items.map((item) => (<div key={item.id} className="legend-item">
-                        <span className="handle" style={{cursor: "grab", marginRight: 8}}>
-                            <i className="bx bx-move"/>
-                        </span>
-                <i
-                    className={`bx bxs-${item.icon}`}
-                    style={{
-                        color: item.color, fontSize: "20px", marginRight: 8,
-                    }}
-                />
-                <Input
-                    type="text"
-                    value={item.text}
-                    onChange={(e) => updateMarker(item.id, "text", e.target.value)}
-                    placeholder="Marker description"
-                />
-                <input
-                    type="color"
-                    value={item.color}
-                    onChange={(e) => updateMarker(item.id, "color", e.target.value)}
-                    style={{marginRight: 8}}
-                />
-                <Input
-                    type="text"
-                    value={item.icon}
-                    onChange={(e) => updateMarker(item.id, "icon", e.target.value)}
-                    placeholder="Icon Name (e.g., map)"
-                    style={{marginRight: 8}}
-                />
-                <button
-                    onClick={() => deleteMarker(item.id)}
-                    style={{
-                        background: "none", border: "none", cursor: "pointer", color: "red",
-                    }}
-                >
-                    <i className="bx bx-trash"/>
-                </button>
-            </div>))}
-        </ReactSortable>
+    // ------------------------------- UI ---------------------------------------
+    return (
+        <div>
+            <h3>Legend</h3>
 
-        <h4>Add New Marker</h4>
-        <Box className="add-marker-form">
-            <Input
-                type="text"
-                value={newMarker.text}
-                onChange={(e) => setNewMarker({...newMarker, text: e.target.value})}
-                placeholder="Marker Text"
-                style={{marginRight: 8}}
-                required={true}
+            <Switch
+                value={showLegend}
+                onChange={(v) => globalConfig.setAsync(GlobalConfigKeys.SHOW_LEGEND, v)}
+                label="Enable legend"
+                size="large"
             />
-            <input
-                type="color"
-                value={newMarker.color}
-                onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
-                style={{marginRight: 8}}
+
+            <Text>Select where the legend will appear on the map.</Text>
+
+            <Select
+                options={LEGEND_POSITIONS}
+                value={position}
+                onChange={(v) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, v)}
             />
-            <Input
-                type="text"
-                value={newMarker.icon}
-                onChange={(e) => setNewMarker({...newMarker, icon: e.target.value})}
-                placeholder="Icon Name (e.g., map)"
-                style={{marginRight: 8}}
-                required={true}
-            />
-            <Button onClick={addMarker} style={{cursor: "pointer"}}>
-                Add Marker
-            </Button>
-
-            {error && (<Text style={{color: "red", marginTop: 8}}>
-                <strong>{error}</strong>
-            </Text>)}
 
 
-        </Box>
-        <p>
-            Go to <a href="https://v2.boxicons.com/" target="_blank"
-                     rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names. Currently only the solid variants are supported.
-        </p>
-    </div>);
+            <ReactSortable list={items} setList={setItems} handle=".handle" animation={150}>
+                {items.map((item) => {
+                    const {previewClass, suggestions, error: iconErrCandidate} = resolveIcon(item.icon);
+                    const isNameTouched = !!touched[item.id]?.text;
+                    const isIconTouched = !!touched[item.id]?.icon;
+
+                    const itemNameErr = nameError(item.text);
+                    const showNameErr = isNameTouched && !!itemNameErr;
+
+                    const itemIconErr = iconErrCandidate ? iconErrorMsg : "";
+                    const showIconErr = isIconTouched && !!itemIconErr;
+
+                    return (
+
+                        <div
+                            key={item.id}
+                            className="legend-item"
+                        >
+                            <div className="flex">
+                                <span className="handle" style={{cursor: "grab", marginRight: 4}}>
+                                    <i className="bx bx-move"/>
+                                </span>
+
+                                {/* Preview: resolved icon; else circle fallback (or dot if font missing) */}
+                                <IconPreview previewClass={previewClass} color={item.color}
+                                             title={item.icon || "circle"}/>
+                                <Input
+                                    type="text"
+                                    value={item.text}
+                                    onChange={(e) => onItemTextChange(item.id, e.target.value)}
+                                    onBlur={() => setTouched((prev) => ({
+                                        ...prev,
+                                        [item.id]: {...(prev[item.id] || {}), text: true}
+                                    }))}
+                                    placeholder="Name"
+                                    style={{borderColor: showNameErr ? "red" : undefined}}
+                                />
+
+                                <input
+                                    type="color"
+                                    value={item.color}
+                                    onChange={(e) => updateMarker(item.id, "color", e.target.value)}
+                                    aria-label="Color"
+                                    style={{height: 30, padding: 0, border: "none", background: "transparent"}}
+                                />
+
+                                {/* Raw icon input; no auto-prefix; mark touched on change/blur */}
+                                <Input
+                                    type="text"
+                                    value={item.icon}
+                                    onChange={(e) => onItemIconChange(item.id, e.target.value)}
+                                    onBlur={() => setTouched((prev) => ({
+                                        ...prev,
+                                        [item.id]: {...(prev[item.id] || {}), icon: true}
+                                    }))}
+                                    placeholder="Icon (leave empty for circle, or e.g., bx-home / bxs-map / map)"
+                                    style={{borderColor: showIconErr ? "red" : undefined}}
+                                />
+
+
+                                <button
+                                    onClick={() => deleteMarker(item.id)}
+                                    title="Delete"
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        color: "red",
+                                        marginLeft: "auto"
+                                    }}
+                                >
+                                    <i className="bx bx-trash"/>
+                                </button>
+                            </div>
+
+                            {(showNameErr || showIconErr || (isIconTouched && suggestions.length > 0)) && (
+                                <div style={{width: "100%", marginLeft: 28}}>
+                                    {showNameErr && (
+                                        <Text style={{color: "red", display: "block"}}>
+                                            <strong>Name error:</strong> {itemNameErr}
+                                        </Text>
+                                    )}
+                                    {showIconErr && (
+                                        <Text style={{color: "red", display: "block"}}>
+                                            <strong>Icon error:</strong> {itemIconErr}
+                                        </Text>
+                                    )}
+                                    {isIconTouched && suggestions.length > 0 && (
+                                        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
+                                            {suggestions.map((cls) => (
+                                                <button
+                                                    key={cls}
+                                                    onClick={() => updateMarker(item.id, "icon", cls)}
+                                                    style={{
+                                                        border: "1px solid #ddd",
+                                                        background: "#f5f5f5",
+                                                        borderRadius: 6,
+                                                        padding: "2px 8px",
+                                                        cursor: "pointer",
+                                                    }}
+                                                    title={`Use ${cls}`}
+                                                >
+                                                    Use <code>{cls}</code>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </ReactSortable>
+
+            <h4>Add New Marker</h4>
+            <Box className="add-marker-form" style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+                <div className="flex">
+                    {/* Live preview for the add form: resolved icon or circle default */}
+                    <IconPreview previewClass={addIconState.previewClass} color={newMarker.color}
+                                 title={newMarker.icon || "circle"}/>
+
+                    <Input
+                        type="text"
+                        value={newMarker.text}
+                        onChange={(e) => {
+                            setNewMarker({...newMarker, text: e.target.value});
+                            if (!addTouched.text) setAddTouched((t) => ({...t, text: true}));
+                        }}
+                        onBlur={() => setAddTouched((t) => ({...t, text: true}))}
+                        placeholder="Name"
+                        required
+                        style={{borderColor: addTouched.text && !!addNameErr ? "red" : undefined}}
+                    />
+
+                    <input
+                        type="color"
+                        value={newMarker.color}
+                        onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
+                        aria-label="Color"
+                        style={{height: 30, padding: 0, border: "none", background: "transparent"}}
+                    />
+
+                    <Input
+                        type="text"
+                        value={newMarker.icon}
+                        onChange={(e) => {
+                            setNewMarker({...newMarker, icon: e.target.value});
+                            if (!addTouched.icon) setAddTouched((t) => ({...t, icon: true}));
+                        }}
+                        onBlur={() => setAddTouched((t) => ({...t, icon: true}))}
+                        placeholder="Icon (leave empty for circle, or e.g., bx-home / bxs-map / map)"
+                        required
+                        style={{borderColor: addTouched.icon && !!addIconErr ? "red" : undefined}}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && canSubmit) addMarker();
+                        }}
+                    />
+                </div>
+
+                <Button onClick={addMarker} disabled={!canSubmit}
+                        style={{cursor: canSubmit ? "pointer" : "not-allowed"}}>
+                    Add Marker
+                </Button>
+
+                {/* Field-specific messages — only after touched */}
+                <div style={{width: "100%"}}>
+                    {addTouched.text && !!addNameErr && (
+                        <Text style={{color: "red", display: "block"}}>
+                            <strong>Name error:</strong> {addNameErr}
+                        </Text>
+                    )}
+                    {addTouched.icon && !!addIconErr && (
+                        <Text style={{color: "red", display: "block"}}>
+                            <strong>Icon error:</strong> {addIconErr}
+                        </Text>
+                    )}
+                    {/* Suggestions (only after icon touched) */}
+                    {addTouched.icon && addIconState.suggestions.length > 0 && (
+                        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
+                            {addIconState.suggestions.map((cls) => (
+                                <button
+                                    key={cls}
+                                    onClick={() => setNewMarker({...newMarker, icon: cls})}
+                                    style={{
+                                        border: "1px solid #ddd",
+                                        background: "#f5f5f5",
+                                        borderRadius: 6,
+                                        padding: "2px 8px",
+                                        cursor: "pointer"
+                                    }}
+                                    title={`Use ${cls}`}
+                                >
+                                    Use <code>{cls}</code>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {/* Submit-time fallback errors (e.g., bad color) */}
+                    {formError && (
+                        <Text style={{color: "red", display: "block", marginTop: 4}}>
+                            <strong>{formError}</strong>
+                        </Text>
+                    )}
+                </div>
+            </Box>
+
+            <p style={{marginTop: 8}}>
+                Default is a <em>circle</em> if the icon is empty. Bare names (e.g., <code>map</code>) preview the
+                <em> normal</em> icon when available and offer the <em>solid</em> variant as a one-click option.
+                Browse names at{" "}
+                <a href="https://v2.boxicons.com/" target="_blank" rel="noopener noreferrer">
+                    v2.boxicons.com
+                </a>.
+            </p>
+        </div>
+    );
 }
+
 
 function About() {
     return (<Box marginTop={3} className="about">
