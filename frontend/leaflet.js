@@ -36,9 +36,14 @@ function escapeHTML(s) {
         .replace(/'/g, "&#39;");
 }
 
+// --- Fast glyph check with memoization -------------------------------------
+const _glyphCache = new Map();
+
 // Does a Boxicons class (e.g., "bx-home"/"bxs-map") render a glyph?
 function hasBoxiconGlyph(iconClass) {
     if (!iconClass) return false;
+    if (_glyphCache.has(iconClass)) return _glyphCache.get(iconClass);
+
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;";
     const i = document.createElement("i");
@@ -50,11 +55,13 @@ function hasBoxiconGlyph(iconClass) {
     const raw = cs && cs.content ? cs.content : "";
     document.body.removeChild(wrap);
     const content = raw.replace(/^['"]|['"]$/g, "");
-    return !!content && content !== "normal" && content !== "none";
+    const ok = !!content && content !== "normal" && content !== "none";
+    _glyphCache.set(iconClass, ok);
+    return ok;
 }
 
 // Resolve the best icon class to preview WITHOUT changing the stored value.
-// Returns a string like "bx bx-home" / "bx bxs-map", or null for fallback.
+// SOLID FIRST for bare names. Returns "bx bxs-..." / "bx bx-..." or null for fallback.
 function resolveBoxiconClass(raw) {
     const s = String(raw || "").trim().toLowerCase().replace(/\s+/g, "");
     if (!s) return null;
@@ -64,11 +71,11 @@ function resolveBoxiconClass(raw) {
         return hasBoxiconGlyph(s) ? `bx ${s}` : null;
     }
 
-    // Bare name: try normal first, then solid
-    const normal = `bx-${s}`;
+    // Bare name: try SOLID first, then normal
     const solid  = `bxs-${s}`;
-    if (hasBoxiconGlyph(normal)) return `bx ${normal}`;
+    const normal = `bx-${s}`;
     if (hasBoxiconGlyph(solid))  return `bx ${solid}`;
+    if (hasBoxiconGlyph(normal)) return `bx ${normal}`;
     return null;
 }
 
@@ -122,6 +129,9 @@ function renderAtlasLegend(map, showLegend, legendPosition, legendData) {
     };
     atlasLegendCtrl.addTo(map);
 }
+
+// Example usage:
+// renderAtlasLegend(map, showLegend, legendPosition, legendData);
 
 
 function Leaflet() {

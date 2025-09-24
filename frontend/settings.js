@@ -341,35 +341,39 @@ function Legend() {
 
     // Resolve preview & suggestions for a raw icon input.
     // Bare names: try normal (bx-) then solid (bxs-). If both exist -> preview normal + suggest solid.
+// Resolve preview & suggestions for a raw icon input.
+// Bare names: try SOLID (bxs-) then NORMAL (bx-). If both exist -> preview SOLID + suggest NORMAL.
     function resolveIcon(raw) {
         const s = (raw || "").trim().toLowerCase().replace(/\s+/g, "");
-        if (!s) return {previewClass: "", suggestions: [], error: ""};
+        if (!s) return { previewClass: "", suggestions: [], error: "" };
 
         const hasPrefix = s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-");
         if (hasPrefix) {
             const ok = hasGlyph(s);
             const suggestions = [];
-            if (s.startsWith("bx-")) {
-                const alt = "bxs-" + s.slice(3);
+            if (s.startsWith("bxs-")) {
+                const alt = "bx-" + s.slice(4); // suggest normal when solid was typed
                 if (hasGlyph(alt)) suggestions.push(alt);
-            } else if (s.startsWith("bxs-")) {
-                const alt = "bx-" + s.slice(4);
+            } else if (s.startsWith("bx-")) {
+                const alt = "bxs-" + s.slice(3); // suggest solid when normal was typed
                 if (hasGlyph(alt)) suggestions.push(alt);
             }
-            return {previewClass: ok ? `bx ${s}` : "", suggestions, error: ok ? "" : "Icon not found."};
+            return { previewClass: ok ? `bx ${s}` : "", suggestions, error: ok ? "" : "Icon not found." };
         }
 
-        const name = s;
+        // Bare name -> prefer SOLID, then NORMAL
+        const name   = s;
+        const solid  = `bxs-${name}`;
         const normal = `bx-${name}`;
-        const solid = `bxs-${name}`;
+        const solidOk  = hasGlyph(solid);
         const normalOk = hasGlyph(normal);
-        const solidOk = hasGlyph(solid);
 
-        if (normalOk && solidOk) return {previewClass: `bx ${normal}`, suggestions: [solid], error: ""};
-        if (normalOk) return {previewClass: `bx ${normal}`, suggestions: [], error: ""};
-        if (solidOk) return {previewClass: `bx ${solid}`, suggestions: [], error: ""};
-        return {previewClass: "", suggestions: [], error: "Icon not found."};
+        if (solidOk && normalOk)  return { previewClass: `bx ${solid}`,  suggestions: [normal], error: "" };
+        if (solidOk)              return { previewClass: `bx ${solid}`,  suggestions: [],       error: "" };
+        if (normalOk)             return { previewClass: `bx ${normal}`, suggestions: [],       error: "" };
+        return { previewClass: "", suggestions: [], error: "Icon not found." };
     }
+
 
     // Acceptable to add? (empty => allowed circle; non-empty must resolve)
     function isValidIconOrEmpty(raw) {
@@ -385,8 +389,8 @@ function Legend() {
             return <i className={previewClass} style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
                       title={title}/>;
         }
-        if (hasGlyph("bx-circle")) {
-            return <i className="bx bx-circle" style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
+        if (hasGlyph("bxs-circle")) {
+            return <i className="bx bxs-circle" style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
                       title={title || "circle"}/>;
         }
         return <FallbackDot color={color} title={title}/>;
