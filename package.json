@@ -7,7 +7,7 @@
         "update": "git fetch upstream && git merge upstream/master && npm install & block release"
     },
     "dependencies": {
-        "@airtable/blocks": "1.8.0",
+        "@airtable/blocks": "1.19.0",
         "boxicons": "^2.1.4",
         "leaflet": "^1.9.4",
         "leaflet-defaulticon-compatibility": "^0.1.2",
@@ -15,16 +15,16 @@
         "leaflet-fullscreen": "^1.0.2",
         "leaflet-gesture-handling": "^1.2.2",
         "leaflet.markercluster": "^1.5.3",
-        "react": "^16.13.0",
-        "react-dom": "^16.13.0",
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2",
         "react-error-boundary": "^5.0.0",
         "react-sortablejs": "^6.1.4",
         "regenerator-runtime": "^0.14.1",
-        "sortablejs": "^1.15.6"
+        "sortablejs": "^1.15.7"
     },
     "devDependencies": {
         "eslint": "^9.33.0",
-        "eslint-plugin-react": "^7.18.3",
-        "eslint-plugin-react-hooks": "^5.2.0"
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.1.1"
     }
 }

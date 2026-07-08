@@ -56,7 +56,7 @@ function legendItemHTML(item) {
 function renderAtlasLegend(map, legendCtrlRef, showLegend, legendPosition, legendData) {
     // remove previous (if any)
     if (legendCtrlRef.current) {
-        try { map.removeControl(legendCtrlRef.current); } catch {}
+        try { map.removeControl(legendCtrlRef.current); } catch { /* already removed */ }
         legendCtrlRef.current = null;
     }
     if (!showLegend) return;
@@ -76,6 +76,48 @@ function renderAtlasLegend(map, legendCtrlRef, showLegend, legendPosition, legen
     };
     ctrl.addTo(map);
     legendCtrlRef.current = ctrl;
+}
+
+/**
+ * Shows a warning control listing marker problems: records that could not be
+ * placed on the map and records rendered with a fallback icon.
+ * @param {L.Map} map
+ * @param {{current: L.Control|null}} ctrlRef - ref holding the current warning control
+ * @param {Array<{name:string,reason:string}>} invalidRecords
+ */
+function renderInvalidWarning(map, ctrlRef, invalidRecords) {
+    if (ctrlRef.current) {
+        try { map.removeControl(ctrlRef.current); } catch { /* already removed */ }
+        ctrlRef.current = null;
+    }
+    if (!invalidRecords.length) return;
+
+    const ctrl = L.control({position: 'topright'});
+    ctrl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'atlas-warning');
+        div.setAttribute('aria-label', 'Map issues');
+
+        const maxShown = 10;
+        const items = invalidRecords.slice(0, maxShown)
+            .map(({name, reason}) => `<li><b>${escapeHTML(name) || 'Unnamed'}</b> — ${escapeHTML(reason)}</li>`)
+            .join('');
+        const more = invalidRecords.length > maxShown
+            ? `<li>…and ${invalidRecords.length - maxShown} more</li>`
+            : '';
+        const plural = invalidRecords.length === 1 ? 'issue' : 'issues';
+        div.innerHTML = `
+            <details>
+                <summary><i class="bx bxs-error" aria-hidden="true"></i>${invalidRecords.length} map ${plural}</summary>
+                <ul>${items}${more}</ul>
+            </details>`;
+
+        // prevent scroll/clicks in the warning from affecting the map
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    ctrl.addTo(map);
+    ctrlRef.current = ctrl;
 }
 
 
@@ -100,6 +142,7 @@ function Leaflet() {
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
     const useGestureHandling = globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false;
+    const showInvalidWarning = globalConfig.get(GlobalConfigKeys.SHOW_INVALID_WARNING) ?? true; // on unless disabled
     const useFixesStartLocation = globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION);
     const startLatitude = globalConfig.get(GlobalConfigKeys.START_LATITUDE);
     const startLongitude = globalConfig.get(GlobalConfigKeys.START_LONGITUDE);
@@ -134,6 +177,7 @@ function Leaflet() {
     const markerGroupRef = useRef(null); // non-clustered markers
     const legendCtrlRef = useRef(null);
     const fullscreenCtrlRef = useRef(null);
+    const invalidWarningCtrlRef = useRef(null);
 
     const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]';
     const legendPosition = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft';
@@ -229,6 +273,18 @@ function Leaflet() {
         markerGroupRef.current.clearLayers();
 
 
+        // Marker problems shown in the warning control: records that can't be
+        // placed, or that render with the fallback icon
+        const invalidRecords = [];
+
+        // An invalid single icon affects every marker — warn once
+        if (useSingleIcon && !resolveBoxiconClass(singleIconName)) {
+            invalidRecords.push({
+                name: 'All markers',
+                reason: `unknown icon "${singleIconName}" (default pin shown)`,
+            });
+        }
+
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
             records.forEach(record => {
@@ -268,16 +324,32 @@ function Leaflet() {
                     }
 
 
-                    if (isValidLocation(lat, lon) && iconSize > 0) {
-                        // Create a custom Leaflet divIcon
-                        const customIcon = createCustomIcon(iconName, color, iconSize);
+                    if (iconSize > 0) { // size 0 hides the marker on purpose
+                        if (isValidLocation(lat, lon)) {
+                            if (!useSingleIcon && !resolveBoxiconClass(iconName)) {
+                                invalidRecords.push({
+                                    name,
+                                    reason: `unknown icon "${iconName}" (default pin shown)`,
+                                });
+                            }
 
-                        const marker = L.marker([lat, lon], {icon: customIcon});
-                        marker.bindPopup(`<b>${escapeHTML(name) || 'No name'}</b>`);
-                        if (useClustering) {
-                            clusterGroupRef.current.addLayer(marker);
+                            // Create a custom Leaflet divIcon
+                            const customIcon = createCustomIcon(iconName, color, iconSize);
+
+                            const marker = L.marker([lat, lon], {icon: customIcon});
+                            marker.bindPopup(`<b>${escapeHTML(name) || 'No name'}</b>`);
+                            if (useClustering) {
+                                clusterGroupRef.current.addLayer(marker);
+                            } else {
+                                markerGroupRef.current.addLayer(marker);
+                            }
                         } else {
-                            markerGroupRef.current.addLayer(marker);
+                            invalidRecords.push({
+                                name,
+                                reason: lat == null && lon == null
+                                    ? 'missing coordinates'
+                                    : `invalid coordinates (${lat}, ${lon})`,
+                            });
                         }
                     }
                 } catch (e) {
@@ -286,6 +358,10 @@ function Leaflet() {
             });
         }
 
+
+        if (mapRef.current) {
+            renderInvalidWarning(mapRef.current, invalidWarningCtrlRef, showInvalidWarning ? invalidRecords : []);
+        }
 
         if (firstRun.current) {
             goToHome();
@@ -307,6 +383,7 @@ function Leaflet() {
         useSingleIconSize,
         singleIconSize,
         useClustering,
+        showInvalidWarning,
     ]);
 
     function goToHome() {

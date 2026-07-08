@@ -42,6 +42,7 @@ export const GlobalConfigKeys = {
     SHOW_LEGEND: 'showLegend',
     LEGEND_POSITION: 'legendPosition',
     GESTUREHANDLING: 'gestureHandling',
+    SHOW_INVALID_WARNING: 'showInvalidWarning',
     USE_FIXED_START_LOCATION: 'useFixedStartLocation',
     START_LATITUDE: 'startLatitude',
     START_LONGITUDE: 'startLongitude',
@@ -168,6 +169,9 @@ function Settings({onDone}) {
             if (globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) == null) {
                 paths.push({path: [GlobalConfigKeys.SINGLE_ICON_SIZE], value: 32});
             }
+        }
+        if (globalConfig.get(GlobalConfigKeys.SHOW_INVALID_WARNING) === undefined) {
+            paths.push({path: [GlobalConfigKeys.SHOW_INVALID_WARNING], value: true});
         }
         if (paths.length) globalConfig.setPathsAsync(paths).catch((e) => console.error(e));
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -405,6 +409,12 @@ function Settings({onDone}) {
                         size="large"
                     />
 
+                    <SwitchSynced
+                        globalConfigKey={GlobalConfigKeys.SHOW_INVALID_WARNING}
+                        label="Warn about invalid markers on the map"
+                        size="large"
+                    />
+
                     <FormField label="Map start position">
                         <SwitchSynced
                             globalConfigKey={GlobalConfigKeys.USE_FIXED_START_LOCATION}
@@ -609,7 +619,7 @@ function Legend() {
     const uniqueId = () => {
         try {
             return crypto.randomUUID();
-        } catch(e) {
+        } catch {
             return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         }
     };
