@@ -3,6 +3,7 @@ import {
     Button,
     FieldPickerSynced,
     FormField,
+    Heading,
     Input,
     InputSynced,
     Select,
@@ -102,8 +103,7 @@ function SectionBadge({done}) {
 function SetupChecklist({steps, isComplete, onDone}) {
     const doneCount = steps.filter((s) => s.done).length;
     return (
-        <Box padding={2} marginBottom={3}
-             style={{border: '1px solid #ddd', borderRadius: 6, background: '#fafafa'}}>
+        <Box className="setup-checklist">
             <Text fontWeight={600} marginBottom={1}>
                 {isComplete
                     ? 'Setup complete — your map is ready.'
@@ -222,7 +222,7 @@ function Settings({onDone}) {
     const validateFieldSelection = (fieldKey, fieldLabel) => {
         const selectedField = globalConfig.get(fieldKey);
         if (!selectedField) {
-            return <p style={{color: 'red'}}>{`${fieldLabel} is required`}</p>;
+            return <p className="settings-error">{`${fieldLabel} is required`}</p>;
         }
         return null;
     };
@@ -240,8 +240,8 @@ function Settings({onDone}) {
 
     return (<ErrorBoundary FallbackComponent={() => <Box padding={3}>Something went wrong!</Box>}>
         <Box padding={3}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-                <h1>Settings</h1>
+            <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
+                <Heading margin={0}>Settings</Heading>
                 {onDone && (
                     <Button variant="primary" onClick={onDone} disabled={!status.isComplete}>
                         Done
@@ -279,7 +279,7 @@ function Settings({onDone}) {
 
                     </>)}
 
-                    {!table && (<p style={{color: 'red'}}>
+                    {!table && (<p className="settings-error">
                         Please select a table to configure the settings.
                     </p>)}
                 </Box>
@@ -288,7 +288,7 @@ function Settings({onDone}) {
             <details open={initiallyOpen.marker}>
                 <summary>Marker config <SectionBadge done={markerDone}/></summary>
                 <Box marginTop={3}>
-                    {!table ? (<p style={{color: 'red'}}>
+                    {!table ? (<p className="settings-error">
                         Please select a table in &ldquo;Database config&rdquo; first.
                     </p>) : (<>
                     <FormField
@@ -588,9 +588,9 @@ function SingleIconNameInput() {
                     style={{borderColor: isEmpty || isInvalid ? 'red' : undefined}}
                 />
             </div>
-            {isEmpty && <p style={{color: 'red'}}>Icon name is required</p>}
+            {isEmpty && <p className="settings-error">Icon name is required</p>}
             {isInvalid && (
-                <p style={{color: 'red'}}>
+                <p className="settings-error">
                     Icon not found — markers will fall back to the default map pin.
                 </p>
             )}
@@ -720,8 +720,6 @@ function Legend() {
     // ------------------------------- UI ---------------------------------------
     return (
         <div>
-            <h3>Legend</h3>
-
             <SwitchSynced
                 globalConfigKey={GlobalConfigKeys.SHOW_LEGEND}
                 label="Enable legend"
@@ -780,7 +778,6 @@ function Legend() {
                                     value={item.color}
                                     onChange={(e) => updateMarker(item.id, "color", e.target.value)}
                                     aria-label="Color"
-                                    style={{height: 30, padding: 0, border: "none", background: "transparent"}}
                                 />
 
                                 {/* Raw icon input; no auto-prefix; mark touched on change/blur */}
@@ -837,7 +834,7 @@ function Legend() {
                 })}
             </ReactSortable>
 
-            <h4>Add New Marker</h4>
+            <Heading size="xsmall" marginTop={3}>Add new marker</Heading>
             <Box className="add-marker-form" style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
                 <div className="flex">
                     {/* Live preview for the add form: resolved icon or circle default */}
@@ -862,7 +859,6 @@ function Legend() {
                         value={newMarker.color}
                         onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
                         aria-label="Color"
-                        style={{height: 30, padding: 0, border: "none", background: "transparent"}}
                     />
 
                     <Input
@@ -930,7 +926,7 @@ function Legend() {
 
 function About() {
     return (<Box marginTop={3} className="about">
-        <h2>About</h2>
+        <Heading size="small">About</Heading>
         <p>
             Made by Benjamin Stieler.
             <br/>

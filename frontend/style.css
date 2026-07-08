@@ -1,55 +1,96 @@
+/* ============================= Map ============================= */
+
 #map {
     border: 2px solid #ddd;
     border-radius: 8px;
 }
-.custom-svg-icon box-icon:hover {
+
+.custom-svg-icon i:hover {
     transform: scale(1.1);
     transition: transform 0.2s ease-in-out;
 }
 
+/* ====================== Settings: sections ====================== */
+
 details {
-    margin-bottom: 1rem; /* Space between collapsible sections */
+    margin-bottom: 0.75rem;
+    border: 1px solid #e3e6ea;
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
 }
 
 summary {
-    font-weight: bold; /* Highlight the section headers */
-    cursor: pointer; /* Indicate interactivity */
-    padding: 0.5rem; /* Add a bit of spacing */
-    border-radius: 4px; /* Subtle rounded corners */
-    background-color: #f9f9f9; /* Light background for visibility */
-    border: 1px solid #ddd; /* Subtle border */
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.6rem 0.75rem;
+    background-color: #f7f8fa;
+    transition: background-color 0.15s ease;
+    user-select: none;
 }
 
 summary:hover {
-    background-color: #f1f1f1; /* Slightly darker on hover */
+    background-color: #eef1f4;
 }
 
 details[open] summary {
-    background-color: #e6f7ff; /* Different background when expanded */
-    border-color: #b3d7ff; /* Adjusted border color for open state */
+    background-color: #e6f2ff;
+    border-bottom: 1px solid #d5e6fb;
 }
 
 details > div {
-    padding: 0.5rem 1rem; /* Padding for the content inside details */
-    border-left: 1px solid #ddd; /* Left border for visual grouping */
-    margin-top: 0.5rem; /* Space between summary and content */
+    padding: 0.75rem 1rem 1rem;
 }
 
-.about {
+/* Red hints under required fields */
+.settings-error {
+    color: #d93025;
+    font-size: 12px;
+    margin: 4px 0 8px;
+}
+
+/* Setup checklist at the top of the settings */
+.setup-checklist {
+    border: 1px solid #e3e6ea;
+    border-radius: 6px;
+    background: #f7f8fa;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+/* Generic row: preview + inputs side by side with breathing room */
+.flex {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+/* Native color swatches */
+input[type="color"] {
+    width: 36px;
+    height: 30px;
+    padding: 0;
     border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color:#f9f9f9;
-    padding: 0.5rem; /* Add a bit of spacing */
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
 }
 
-/*Legend in the settings*/
+select {
+    padding-bottom: 5px !important;
+    padding-top: 5px !important;
+}
+
+/* ====================== Settings: legend editor ====================== */
+
 .legend-item {
     display: flex;
     flex-direction: column;
-    align-items: center;
     padding: 8px;
     background: #f9f9f9;
-    border: 1px solid #ddd;
+    border: 1px solid #e3e6ea;
     border-radius: 4px;
     margin-bottom: 5px;
     transition: background 0.2s;
@@ -65,219 +106,46 @@ details > div {
     margin-top: 10px;
 }
 
-/*Legend on the map*/
+/* ====================== Settings: about ====================== */
 
-/* General style for the Leaflet legend */
+.about {
+    border: 1px solid #e3e6ea;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    padding: 0.5rem;
+}
+
+/* ====================== Legend on the map ====================== */
+
 .info.legend {
-    background-color: white; /* Background color */
-    border-radius: 5px; /* Rounded corners */
-    padding: 10px; /* Padding around the content */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Soft shadow for the legend */
-    font-family: Arial, sans-serif; /* Font style */
-    font-size: 14px; /* Font size */
-    line-height: 1.6; /* Line height for spacing */
-    max-width: 200px; /* Maximum width */
-    z-index: 1000; /* Ensure the legend stays on top */
-    color: #333; /* Text color */
-    opacity: 0.9; /* Slight transparency */
+    background-color: white;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 200px;
+    z-index: 1000;
+    color: #333;
+    opacity: 0.9;
 }
 
-/* Style for the icon in the legend */
 .info.legend i {
-    margin-right: 10px; /* Space between the icon and the text */
-    vertical-align: middle; /* Align icon vertically with text */
+    margin-right: 10px;
+    vertical-align: middle;
 }
 
-/* Style for the text in the legend */
 .info.legend span {
     font-size: 14px;
-    font-weight: 600; /* Make the text a little bolder */
+    font-weight: 600;
 }
 
-/* Adjust legend for small screens (responsive design) */
 @media (max-width: 600px) {
     .info.legend {
-        max-width: 150px; /* Reduce width on small screens */
-        font-size: 12px; /* Reduce font size on small screens */
-        padding: 8px; /* Reduce padding on small screens */
+        max-width: 150px;
+        font-size: 12px;
+        padding: 8px;
     }
-}
-
-/* Optional: Add a border for better visibility */
-.info.legend {
-    border: 2px solid #ddd;
-}
-
-/* Add some spacing between individual legend items */
-.info.legend br {
-    margin-bottom: 5px;
-}
-
-
-/* Scope everything under .atlas-legend to avoid collisions */
-.atlas-legend {
-    --gap: 8px;
-    --row-margin: 8px;
-    --icon-size: 20px;
-    --error: #d93025;
-    --muted: #666;
-}
-
-.atlas-legend__title,
-.atlas-legend__subtitle {
-    margin: 0.5rem 0;
-}
-
-.atlas-legend__hint {
-    margin-top: 0.25rem;
-}
-
-.atlas-legend__spacer {
-    height: 12px;
-}
-
-/* Rows / layout */
-.atlas-legend__row {
-    display: flex;
-    align-items: center;
-    gap: var(--gap);
-    margin-bottom: var(--row-margin);
-    flex-wrap: wrap;
-}
-
-/* Drag handle */
-.atlas-legend__handle {
-    cursor: grab;
-    margin-right: 4px;
-    display: inline-flex;
-    align-items: center;
-}
-
-/* Icon / fallback dot */
-.atlas-legend__icon {
-    font-size: var(--icon-size);
-    margin-right: 4px;
-    vertical-align: middle;
-}
-
-.atlas-legend__dot {
-    display: inline-block;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    margin-right: 4px;
-    vertical-align: middle;
-}
-
-/* Inputs */
-.atlas-legend__field {
-    display: inline-block;
-}
-
-.atlas-legend__field--name {
-    width: 28%;
-    min-width: 200px;
-}
-
-.atlas-legend__field--icon {
-    width: 300px;
-    max-width: 100%;
-}
-
-.atlas-legend__input {
-    width: 100%;
-}
-
-.atlas-legend__input--error {
-    border-color: var(--error) !important;
-}
-
-/* Color input */
-.atlas-legend__color {
-    width: 36px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
-/* Delete button */
-.atlas-legend__delete {
-    background: none;
-    border: none;
-    color: #c62828;
-    cursor: pointer;
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-}
-
-.atlas-legend__delete:hover {
-    opacity: 0.85;
-}
-
-/* Messages / errors / suggestions */
-.atlas-legend__messages {
-    width: 100%;
-    margin-left: 28px;
-}
-
-.atlas-legend__error {
-    color: var(--error);
-    display: block;
-}
-
-.atlas-legend__error--block {
-    margin-top: 4px;
-}
-
-.atlas-legend__suggestions {
-    display: inline-flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-}
-
-.atlas-legend__pill {
-    border: 1px solid #ddd;
-    background: #f5f5f5;
-    border-radius: 6px;
-    padding: 2px 8px;
-    cursor: pointer;
-}
-
-.atlas-legend__pill:hover {
-    background: #eee;
-}
-
-/* Add form */
-.atlas-legend__add {
-    display: flex;
-    align-items: center;
-    gap: var(--gap);
-    flex-wrap: wrap;
-    margin-top: 6px;
-}
-
-.atlas-legend__addbtn[disabled] {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* Footnote */
-.atlas-legend__footnote {
-    margin-top: 8px;
-    color: var(--muted);
-}
-
-Input {
-    border: 1px solid black !important;
-}
-
-.flex {
-    display: flex;
-}
-
-select {
-    padding-bottom: 5px !important;
-    padding-top: 5px !important;
 }
