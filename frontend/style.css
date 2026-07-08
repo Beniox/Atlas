@@ -115,6 +115,108 @@ select {
     padding: 0.5rem;
 }
 
+/* ====================== First-run setup wizard ====================== */
+
+.setup-wizard {
+    max-width: 520px;
+    margin: 24px auto;
+    padding: 20px;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.wizard-cards {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.wizard-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 12px;
+    border: 2px solid #e3e6ea;
+    border-radius: 8px;
+    background: #fafbfc;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+}
+
+.wizard-card:hover {
+    border-color: #b3d7ff;
+}
+
+.wizard-card--selected {
+    border-color: #2d7ff9;
+    background: #eef5ff;
+}
+
+.wizard-summary {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.8;
+}
+
+.wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.wizard-progress {
+    color: #666;
+}
+
+/* ================= Warning on the map (invalid records) ================= */
+
+.atlas-warning {
+    background: #fff8e1;
+    border: 2px solid #f0c36d;
+    border-radius: 5px;
+    padding: 6px 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #6b4e00;
+    max-width: 240px;
+}
+
+/* neutralize the settings-panel details/summary card styling inside the control */
+.atlas-warning details,
+.atlas-warning summary,
+.atlas-warning details[open] summary {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    overflow: visible;
+}
+
+.atlas-warning summary {
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.atlas-warning summary i {
+    vertical-align: middle;
+    margin-right: 4px;
+    color: #c77700;
+}
+
+.atlas-warning ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
 /* ====================== Legend on the map ====================== */
 
 .info.legend {

@@ -1,6 +1,7 @@
 import {
     Box,
     Button,
+    ConfirmationDialog,
     FieldPickerSynced,
     FormField,
     Heading,
@@ -43,6 +44,7 @@ export const GlobalConfigKeys = {
     LEGEND_POSITION: 'legendPosition',
     GESTUREHANDLING: 'gestureHandling',
     SHOW_INVALID_WARNING: 'showInvalidWarning',
+    SETUP_WIZARD_COMPLETED: 'setupWizardCompleted',
     USE_FIXED_START_LOCATION: 'useFixedStartLocation',
     START_LATITUDE: 'startLatitude',
     START_LONGITUDE: 'startLongitude',
@@ -93,6 +95,82 @@ export function getSetupStatus(globalConfig, base) {
     };
 }
 
+// Paths that seed a fresh (or freshly reset) config with sensible defaults:
+// single icon/color/size marker style and marker warnings enabled.
+// Only touches keys the user hasn't configured yet.
+export function defaultConfigPaths(globalConfig) {
+    const paths = [];
+    if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) === undefined
+        && !globalConfig.get(GlobalConfigKeys.BOX_ICON_FIELD)) {
+        paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON], value: true});
+        if (!globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME)) {
+            paths.push({path: [GlobalConfigKeys.SINGLE_ICON_NAME], value: 'map'});
+        }
+    }
+    if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) === undefined
+        && !globalConfig.get(GlobalConfigKeys.COLOR_FIELD)) {
+        paths.push({path: [GlobalConfigKeys.USE_SINGLE_COLOR], value: true});
+        if (!globalConfig.get(GlobalConfigKeys.SINGLE_COLOR)) {
+            paths.push({path: [GlobalConfigKeys.SINGLE_COLOR], value: '#2d7ff9'});
+        }
+    }
+    if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) === undefined
+        && !globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD)) {
+        paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON_SIZE], value: true});
+        if (globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) == null) {
+            paths.push({path: [GlobalConfigKeys.SINGLE_ICON_SIZE], value: 32});
+        }
+    }
+    if (globalConfig.get(GlobalConfigKeys.SHOW_INVALID_WARNING) === undefined) {
+        paths.push({path: [GlobalConfigKeys.SHOW_INVALID_WARNING], value: true});
+    }
+    return paths;
+}
+
+// Paths that adapt the field config to the given table: drops field ids that
+// belong to another table and auto-suggests latitude/longitude (by field name)
+// and name (primary field).
+export function autoConfigureFieldsPaths(table, globalConfig) {
+    const paths = [];
+
+    const FIELD_KEYS = [
+        GlobalConfigKeys.LATITUDE_FIELD,
+        GlobalConfigKeys.LONGITUDE_FIELD,
+        GlobalConfigKeys.NAME_FIELD,
+        GlobalConfigKeys.COLOR_FIELD,
+        GlobalConfigKeys.BOX_ICON_FIELD,
+        GlobalConfigKeys.ICON_SIZE_FIELD,
+    ];
+    const validFieldId = (key) => {
+        const fieldId = globalConfig.get(key);
+        return fieldId && table.getFieldByIdIfExists(fieldId) ? fieldId : null;
+    };
+    for (const key of FIELD_KEYS) {
+        if (globalConfig.get(key) && !validFieldId(key)) {
+            paths.push({path: [key], value: undefined}); // stale id from a previous table
+        }
+    }
+
+    const numericFields = table.fields.filter(
+        (f) => f.type === FieldType.NUMBER || f.type === FieldType.FORMULA
+    );
+    const findField = (matcher) => numericFields.find((f) => matcher(f.name.toLowerCase().trim()));
+
+    if (!validFieldId(GlobalConfigKeys.LATITUDE_FIELD)) {
+        const lat = findField((n) => n === 'lat' || n.includes('latitude'));
+        if (lat) paths.push({path: [GlobalConfigKeys.LATITUDE_FIELD], value: lat.id});
+    }
+    if (!validFieldId(GlobalConfigKeys.LONGITUDE_FIELD)) {
+        const lng = findField((n) => n === 'lng' || n === 'lon' || n === 'long' || n.includes('longitude'));
+        if (lng) paths.push({path: [GlobalConfigKeys.LONGITUDE_FIELD], value: lng.id});
+    }
+    if (!validFieldId(GlobalConfigKeys.NAME_FIELD)) {
+        paths.push({path: [GlobalConfigKeys.NAME_FIELD], value: table.primaryField.id});
+    }
+
+    return paths;
+}
+
 // Green check / red hint shown in a section's <summary>
 function SectionBadge({done}) {
     return done
@@ -127,7 +205,7 @@ function SetupChecklist({steps, isComplete, onDone}) {
     );
 }
 
-function Settings({onDone}) {
+function Settings({onDone, openMarkerConfig = false, onReset}) {
     const base = useBase();
     const globalConfig = useGlobalConfig();
     const tableId = globalConfig.get(GlobalConfigKeys.TABLE_ID);
@@ -141,38 +219,34 @@ function Settings({onDone}) {
     // so the user keeps control of the sections afterwards)
     const [initiallyOpen] = React.useState(() => ({
         database: !databaseDone,
-        marker: !markerDone,
+        marker: openMarkerConfig || !markerDone,
     }));
+
+    const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
+    // Bumped after a reset to remount components that mirror config in local state
+    const [resetNonce, setResetNonce] = React.useState(0);
+
+    const resetAllSettings = async () => {
+        setIsResetDialogOpen(false);
+        try {
+            await globalConfig.setPathsAsync(
+                Object.values(GlobalConfigKeys).map((key) => ({path: [key], value: undefined}))
+            );
+            // back to the fresh-install defaults
+            const defaults = defaultConfigPaths(globalConfig);
+            if (defaults.length) await globalConfig.setPathsAsync(defaults);
+            setResetNonce((n) => n + 1);
+            if (onReset) onReset(); // e.g. hand over to the first-run wizard
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     // Fresh install: default the marker style to a single icon/color/size so
     // the map can render as soon as table + location fields are picked.
     React.useEffect(() => {
         if (!globalConfig.hasPermissionToSet()) return;
-        const paths = [];
-        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) === undefined
-            && !globalConfig.get(GlobalConfigKeys.BOX_ICON_FIELD)) {
-            paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON], value: true});
-            if (!globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME)) {
-                paths.push({path: [GlobalConfigKeys.SINGLE_ICON_NAME], value: 'map'});
-            }
-        }
-        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) === undefined
-            && !globalConfig.get(GlobalConfigKeys.COLOR_FIELD)) {
-            paths.push({path: [GlobalConfigKeys.USE_SINGLE_COLOR], value: true});
-            if (!globalConfig.get(GlobalConfigKeys.SINGLE_COLOR)) {
-                paths.push({path: [GlobalConfigKeys.SINGLE_COLOR], value: '#2d7ff9'});
-            }
-        }
-        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) === undefined
-            && !globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD)) {
-            paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON_SIZE], value: true});
-            if (globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) == null) {
-                paths.push({path: [GlobalConfigKeys.SINGLE_ICON_SIZE], value: 32});
-            }
-        }
-        if (globalConfig.get(GlobalConfigKeys.SHOW_INVALID_WARNING) === undefined) {
-            paths.push({path: [GlobalConfigKeys.SHOW_INVALID_WARNING], value: true});
-        }
+        const paths = defaultConfigPaths(globalConfig);
         if (paths.length) globalConfig.setPathsAsync(paths).catch((e) => console.error(e));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -181,43 +255,7 @@ function Settings({onDone}) {
     // auto-suggest latitude/longitude (by field name) and name (primary field).
     React.useEffect(() => {
         if (!table || !globalConfig.hasPermissionToSet()) return;
-        const paths = [];
-
-        const FIELD_KEYS = [
-            GlobalConfigKeys.LATITUDE_FIELD,
-            GlobalConfigKeys.LONGITUDE_FIELD,
-            GlobalConfigKeys.NAME_FIELD,
-            GlobalConfigKeys.COLOR_FIELD,
-            GlobalConfigKeys.BOX_ICON_FIELD,
-            GlobalConfigKeys.ICON_SIZE_FIELD,
-        ];
-        const validFieldId = (key) => {
-            const fieldId = globalConfig.get(key);
-            return fieldId && table.getFieldByIdIfExists(fieldId) ? fieldId : null;
-        };
-        for (const key of FIELD_KEYS) {
-            if (globalConfig.get(key) && !validFieldId(key)) {
-                paths.push({path: [key], value: undefined}); // stale id from a previous table
-            }
-        }
-
-        const numericFields = table.fields.filter(
-            (f) => f.type === FieldType.NUMBER || f.type === FieldType.FORMULA
-        );
-        const findField = (matcher) => numericFields.find((f) => matcher(f.name.toLowerCase().trim()));
-
-        if (!validFieldId(GlobalConfigKeys.LATITUDE_FIELD)) {
-            const lat = findField((n) => n === 'lat' || n.includes('latitude'));
-            if (lat) paths.push({path: [GlobalConfigKeys.LATITUDE_FIELD], value: lat.id});
-        }
-        if (!validFieldId(GlobalConfigKeys.LONGITUDE_FIELD)) {
-            const lng = findField((n) => n === 'lng' || n === 'lon' || n === 'long' || n.includes('longitude'));
-            if (lng) paths.push({path: [GlobalConfigKeys.LONGITUDE_FIELD], value: lng.id});
-        }
-        if (!validFieldId(GlobalConfigKeys.NAME_FIELD)) {
-            paths.push({path: [GlobalConfigKeys.NAME_FIELD], value: table.primaryField.id});
-        }
-
+        const paths = autoConfigureFieldsPaths(table, globalConfig);
         if (paths.length) globalConfig.setPathsAsync(paths).catch((e) => console.error(e));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [table && table.id]);
@@ -461,10 +499,27 @@ function Settings({onDone}) {
             <details>
                 <summary>Legend (optional)</summary>
                 <Box marginTop={2}>
-                    <Legend/>
+                    <Legend key={resetNonce}/>
                 </Box>
             </details>
 
+            <Box marginTop={3}>
+                <Button variant="danger" icon="trash" onClick={() => setIsResetDialogOpen(true)}>
+                    Reset all settings
+                </Button>
+            </Box>
+
+            {isResetDialogOpen && (
+                <ConfirmationDialog
+                    title="Reset all settings?"
+                    body="This clears the entire map configuration (table, fields, marker style, legend, …)
+                          for everyone using this extension. This cannot be undone."
+                    confirmButtonText="Reset"
+                    isConfirmActionDangerous={true}
+                    onConfirm={resetAllSettings}
+                    onCancel={() => setIsResetDialogOpen(false)}
+                />
+            )}
 
             <About/>
         </Box>
@@ -576,7 +631,7 @@ function SuggestionChips({suggestions, onPick}) {
 }
 
 // "Single Icon Name" input with live preview, validation and variant suggestions
-function SingleIconNameInput() {
+export function SingleIconNameInput({label = "Single Icon Name"}) {
     const globalConfig = useGlobalConfig();
     const value = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME) || '';
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
@@ -587,7 +642,7 @@ function SingleIconNameInput() {
     const isInvalid = !isEmpty && !previewClass;
 
     return (
-        <FormField label="Single Icon Name">
+        <FormField label={label}>
             <div className="flex">
                 {/* Preview what the map will show: the resolved icon, or the default map pin */}
                 <IconPreview previewClass={previewClass || "bx bxs-map"} color={previewColor}
