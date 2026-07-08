@@ -4,8 +4,9 @@ import {
     FieldPickerSynced,
     FormField,
     Input,
+    InputSynced,
     Select,
-    Switch,
+    SwitchSynced,
     TablePickerSynced,
     Text,
     useBase,
@@ -46,11 +47,176 @@ export const GlobalConfigKeys = {
     START_ZOOM: 'startZoom',
 };
 
-function Settings() {
+/**
+ * Compute setup progress. Used by the settings UI (checklist, section badges)
+ * and by index.js to decide whether the map can be shown.
+ * A field only counts if it still exists in the selected table.
+ */
+export function getSetupStatus(globalConfig, base) {
+    const get = (key) => globalConfig.get(key);
+    const table = base.getTableByIdIfExists(get(GlobalConfigKeys.TABLE_ID));
+
+    const hasField = (key) => {
+        const fieldId = get(key);
+        return !!(table && fieldId && table.getFieldByIdIfExists(fieldId));
+    };
+
+    const hasTable = !!table;
+    const hasLocation = hasField(GlobalConfigKeys.LATITUDE_FIELD) && hasField(GlobalConfigKeys.LONGITUDE_FIELD);
+    const hasName = hasField(GlobalConfigKeys.NAME_FIELD);
+
+    const iconOk = get(GlobalConfigKeys.USE_SINGLE_ICON)
+        ? !!get(GlobalConfigKeys.SINGLE_ICON_NAME)
+        : hasField(GlobalConfigKeys.BOX_ICON_FIELD);
+    const colorOk = get(GlobalConfigKeys.USE_SINGLE_COLOR)
+        ? !!get(GlobalConfigKeys.SINGLE_COLOR)
+        : hasField(GlobalConfigKeys.COLOR_FIELD);
+    const sizeOk = get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE)
+        ? get(GlobalConfigKeys.SINGLE_ICON_SIZE) != null && get(GlobalConfigKeys.SINGLE_ICON_SIZE) !== ''
+        : hasField(GlobalConfigKeys.ICON_SIZE_FIELD);
+    const hasMarkerStyle = iconOk && colorOk && sizeOk;
+
+    return {
+        hasTable,
+        hasLocation,
+        hasName,
+        hasMarkerStyle,
+        isComplete: hasTable && hasLocation && hasName && hasMarkerStyle,
+        steps: [
+            {label: 'Select a table', done: hasTable},
+            {label: 'Pick latitude & longitude fields', done: hasLocation},
+            {label: 'Pick a name field for popups', done: hasName},
+            {label: 'Choose a marker style (icon, color, size)', done: hasMarkerStyle},
+        ],
+    };
+}
+
+// Green check / red hint shown in a section's <summary>
+function SectionBadge({done}) {
+    return done
+        ? <span style={{color: 'green'}} aria-label="complete">✓</span>
+        : <span style={{color: '#d93025', fontWeight: 'normal'}}> — action needed</span>;
+}
+
+// Step-by-step progress shown at the top of the settings
+function SetupChecklist({steps, isComplete, onDone}) {
+    const doneCount = steps.filter((s) => s.done).length;
+    return (
+        <Box padding={2} marginBottom={3}
+             style={{border: '1px solid #ddd', borderRadius: 6, background: '#fafafa'}}>
+            <Text fontWeight={600} marginBottom={1}>
+                {isComplete
+                    ? 'Setup complete — your map is ready.'
+                    : `Getting started (${doneCount}/${steps.length})`}
+            </Text>
+            {steps.map((step) => (
+                <Text key={step.label} style={{color: step.done ? 'green' : '#666'}}>
+                    <i
+                        className={`bx ${step.done ? 'bxs-check-circle' : 'bx-circle'}`}
+                        style={{verticalAlign: 'middle', marginRight: 6}}
+                        aria-hidden="true"
+                    />
+                    {step.label}
+                </Text>
+            ))}
+            {isComplete && onDone && (
+                <Button marginTop={2} variant="primary" onClick={onDone}>View map</Button>
+            )}
+        </Box>
+    );
+}
+
+function Settings({onDone}) {
     const base = useBase();
     const globalConfig = useGlobalConfig();
     const tableId = globalConfig.get(GlobalConfigKeys.TABLE_ID);
     const table = tableId ? base.getTableByIdIfExists(tableId) : null;
+
+    const status = getSetupStatus(globalConfig, base);
+    const databaseDone = status.hasTable && status.hasLocation;
+    const markerDone = status.hasName && status.hasMarkerStyle;
+
+    // Open the sections that still need attention (evaluated once, on mount,
+    // so the user keeps control of the sections afterwards)
+    const [initiallyOpen] = React.useState(() => ({
+        database: !databaseDone,
+        marker: !markerDone,
+    }));
+
+    // Fresh install: default the marker style to a single icon/color/size so
+    // the map can render as soon as table + location fields are picked.
+    React.useEffect(() => {
+        if (!globalConfig.hasPermissionToSet()) return;
+        const paths = [];
+        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) === undefined
+            && !globalConfig.get(GlobalConfigKeys.BOX_ICON_FIELD)) {
+            paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON], value: true});
+            if (!globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME)) {
+                paths.push({path: [GlobalConfigKeys.SINGLE_ICON_NAME], value: 'map'});
+            }
+        }
+        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) === undefined
+            && !globalConfig.get(GlobalConfigKeys.COLOR_FIELD)) {
+            paths.push({path: [GlobalConfigKeys.USE_SINGLE_COLOR], value: true});
+            if (!globalConfig.get(GlobalConfigKeys.SINGLE_COLOR)) {
+                paths.push({path: [GlobalConfigKeys.SINGLE_COLOR], value: '#2d7ff9'});
+            }
+        }
+        if (globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) === undefined
+            && !globalConfig.get(GlobalConfigKeys.ICON_SIZE_FIELD)) {
+            paths.push({path: [GlobalConfigKeys.USE_SINGLE_ICON_SIZE], value: true});
+            if (globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) == null) {
+                paths.push({path: [GlobalConfigKeys.SINGLE_ICON_SIZE], value: 32});
+            }
+        }
+        if (paths.length) globalConfig.setPathsAsync(paths).catch((e) => console.error(e));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // When the table changes: drop field ids that belong to another table and
+    // auto-suggest latitude/longitude (by field name) and name (primary field).
+    React.useEffect(() => {
+        if (!table || !globalConfig.hasPermissionToSet()) return;
+        const paths = [];
+
+        const FIELD_KEYS = [
+            GlobalConfigKeys.LATITUDE_FIELD,
+            GlobalConfigKeys.LONGITUDE_FIELD,
+            GlobalConfigKeys.NAME_FIELD,
+            GlobalConfigKeys.COLOR_FIELD,
+            GlobalConfigKeys.BOX_ICON_FIELD,
+            GlobalConfigKeys.ICON_SIZE_FIELD,
+        ];
+        const validFieldId = (key) => {
+            const fieldId = globalConfig.get(key);
+            return fieldId && table.getFieldByIdIfExists(fieldId) ? fieldId : null;
+        };
+        for (const key of FIELD_KEYS) {
+            if (globalConfig.get(key) && !validFieldId(key)) {
+                paths.push({path: [key], value: undefined}); // stale id from a previous table
+            }
+        }
+
+        const numericFields = table.fields.filter(
+            (f) => f.type === FieldType.NUMBER || f.type === FieldType.FORMULA
+        );
+        const findField = (matcher) => numericFields.find((f) => matcher(f.name.toLowerCase().trim()));
+
+        if (!validFieldId(GlobalConfigKeys.LATITUDE_FIELD)) {
+            const lat = findField((n) => n === 'lat' || n.includes('latitude'));
+            if (lat) paths.push({path: [GlobalConfigKeys.LATITUDE_FIELD], value: lat.id});
+        }
+        if (!validFieldId(GlobalConfigKeys.LONGITUDE_FIELD)) {
+            const lng = findField((n) => n === 'lng' || n === 'lon' || n === 'long' || n.includes('longitude'));
+            if (lng) paths.push({path: [GlobalConfigKeys.LONGITUDE_FIELD], value: lng.id});
+        }
+        if (!validFieldId(GlobalConfigKeys.NAME_FIELD)) {
+            paths.push({path: [GlobalConfigKeys.NAME_FIELD], value: table.primaryField.id});
+        }
+
+        if (paths.length) globalConfig.setPathsAsync(paths).catch((e) => console.error(e));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [table && table.id]);
 
     // Helper function to validate the field selection
     const validateFieldSelection = (fieldKey, fieldLabel) => {
@@ -62,8 +228,7 @@ function Settings() {
     };
 
     // check for permissions
-    const permission = globalConfig.checkPermissionsForSetPaths(Object.entries(GlobalConfigKeys));
-    if (permission.hasPermission === false) {
+    if (!globalConfig.hasPermissionToSet()) {
         return (<>
             <Box padding={3} className="about">
                 <Text>You do not have permission to edit these settings</Text>
@@ -75,9 +240,19 @@ function Settings() {
 
     return (<ErrorBoundary FallbackComponent={() => <Box padding={3}>Something went wrong!</Box>}>
         <Box padding={3}>
-            <h1>Settings</h1>
-            <details>
-                <summary>Database config</summary>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+                <h1>Settings</h1>
+                {onDone && (
+                    <Button variant="primary" onClick={onDone} disabled={!status.isComplete}>
+                        Done
+                    </Button>
+                )}
+            </Box>
+
+            <SetupChecklist steps={status.steps} isComplete={status.isComplete} onDone={onDone}/>
+
+            <details open={initiallyOpen.database}>
+                <summary>Database config <SectionBadge done={databaseDone}/></summary>
                 <Box marginTop={2}>
                     <FormField label="Table" description="Select the table containing your data">
                         <TablePickerSynced globalConfigKey={GlobalConfigKeys.TABLE_ID}/>
@@ -110,9 +285,12 @@ function Settings() {
                 </Box>
             </details>
 
-            <details>
-                <summary>Marker config</summary>
+            <details open={initiallyOpen.marker}>
+                <summary>Marker config <SectionBadge done={markerDone}/></summary>
                 <Box marginTop={3}>
+                    {!table ? (<p style={{color: 'red'}}>
+                        Please select a table in &ldquo;Database config&rdquo; first.
+                    </p>) : (<>
                     <FormField
                         label="Name Field"
                         // description="Select the field used to display names for the markers"
@@ -123,9 +301,8 @@ function Settings() {
 
                     {/* Color Toggle */}
                     <FormField label="Marker Color">
-                        <Switch
-                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR) || false}
-                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_COLOR, value)}
+                        <SwitchSynced
+                            globalConfigKey={GlobalConfigKeys.USE_SINGLE_COLOR}
                             label="Use a single color for all markers"
                             size="large"
                         />
@@ -151,9 +328,8 @@ function Settings() {
 
                     {/* Icon Toggle */}
                     <FormField label="Marker Icon">
-                        <Switch
-                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) || false}
-                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_ICON, value)}
+                        <SwitchSynced
+                            globalConfigKey={GlobalConfigKeys.USE_SINGLE_ICON}
                             label="Use a single icon for all markers"
                             size="large"
                         />
@@ -179,17 +355,17 @@ function Settings() {
 
                     {/* Icon Size Toggle */}
                     <FormField label="Marker Icon Size">
-                        <Switch
-                            value={globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) || false}
-                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_SINGLE_ICON_SIZE, value)}
+                        <SwitchSynced
+                            globalConfigKey={GlobalConfigKeys.USE_SINGLE_ICON_SIZE}
                             label="Use a single size for all markers"
                             size="large"
                         />
                         {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE) ? (<FormField label="Single Icon Size">
                             <Input
                                 type="number"
-                                value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) || ''}
-                                onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE, e.target.value)}
+                                value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE) ?? ''}
+                                onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE,
+                                    e.target.value === '' ? undefined : Number(e.target.value))}
                                 placeholder="Enter icon size (e.g., 20)"
                             />
                         </FormField>) : (<>
@@ -203,38 +379,35 @@ function Settings() {
                             {validateFieldSelection(GlobalConfigKeys.ICON_SIZE_FIELD, 'Icon Size Field')}
                         </>)}
                     </FormField>
+                    </>)}
                 </Box>
             </details>
 
 
             <details>
-                <summary>Map config</summary>
+                <summary>Map config (optional)</summary>
                 <Box marginTop={2}>
-                    <Switch
-                        value={globalConfig.get(GlobalConfigKeys.USE_CLUSTERING) || false}
-                        onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_CLUSTERING, value)}
+                    <SwitchSynced
+                        globalConfigKey={GlobalConfigKeys.USE_CLUSTERING}
                         label="Use Clustering"
                         size="large"
                     />
 
-                    <Switch
-                        value={globalConfig.get(GlobalConfigKeys.ALLOW_FULL_SCREEN) || false}
-                        onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.ALLOW_FULL_SCREEN, value)}
+                    <SwitchSynced
+                        globalConfigKey={GlobalConfigKeys.ALLOW_FULL_SCREEN}
                         label="Allow Fullscreen"
                         size="large"
                     />
 
-                    <Switch
-                        value={globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false}
-                        onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.GESTUREHANDLING, value)}
+                    <SwitchSynced
+                        globalConfigKey={GlobalConfigKeys.GESTUREHANDLING}
                         label="Zoom with ctrl + scroll"
                         size="large"
                     />
 
                     <FormField label="Map start position">
-                        <Switch
-                            value={globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION) || false}
-                            onChange={(value) => globalConfig.setAsync(GlobalConfigKeys.USE_FIXED_START_LOCATION, value)}
+                        <SwitchSynced
+                            globalConfigKey={GlobalConfigKeys.USE_FIXED_START_LOCATION}
                             label="Set a custom start position"
                             size="large"
                         />
@@ -243,24 +416,27 @@ function Settings() {
                                 <FormField label="Start Latitude">
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) || 0}
-                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE, e.target.value)}
+                                        value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) ?? 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE,
+                                            e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Latitude"
                                     />
                                 </FormField>
                                 <FormField label="Start Longitude">
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) || 0}
-                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE, e.target.value)}
+                                        value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) ?? 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE,
+                                            e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Longitude"
                                     />
                                 </FormField>
                                 <FormField label="Start Zoom">
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_ZOOM) || 0}
-                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM, e.target.value)}
+                                        value={globalConfig.get(GlobalConfigKeys.START_ZOOM) ?? 0}
+                                        onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM,
+                                            e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Zoom"
                                     />
                                 </FormField>
@@ -273,7 +449,7 @@ function Settings() {
             </details>
 
             <details>
-                <summary>Legend</summary>
+                <summary>Legend (optional)</summary>
                 <Box marginTop={2}>
                     <Legend/>
                 </Box>
@@ -406,9 +582,8 @@ function SingleIconNameInput() {
                 {/* Preview what the map will show: the resolved icon, or the default map pin */}
                 <IconPreview previewClass={previewClass || "bx bxs-map"} color={previewColor}
                              title={value || "default map pin"}/>
-                <Input
-                    value={value}
-                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, e.target.value)}
+                <InputSynced
+                    globalConfigKey={GlobalConfigKeys.SINGLE_ICON_NAME}
                     placeholder="Enter an icon name (e.g., bx-home / bxs-map / map)"
                     style={{borderColor: isEmpty || isInvalid ? 'red' : undefined}}
                 />
@@ -455,7 +630,6 @@ function Legend() {
         {value: "bottomright", label: "Bottom right"},
     ];
 
-    const showLegend = globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false;
     const position = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || "bottomleft";
 
     const initialItems = React.useMemo(() => {
@@ -548,9 +722,8 @@ function Legend() {
         <div>
             <h3>Legend</h3>
 
-            <Switch
-                value={showLegend}
-                onChange={(v) => globalConfig.setAsync(GlobalConfigKeys.SHOW_LEGEND, v)}
+            <SwitchSynced
+                globalConfigKey={GlobalConfigKeys.SHOW_LEGEND}
                 label="Enable legend"
                 size="large"
             />
