@@ -16,6 +16,7 @@ import React from 'react';
 import {ErrorBoundary} from "react-error-boundary";
 import {ReactSortable} from "react-sortablejs";
 import 'boxicons/css/boxicons.min.css';
+import {hasBoxiconGlyph} from "./iconUtils";
 import "./style.css"
 
 // Global Config Keys
@@ -157,13 +158,7 @@ function Settings() {
                             size="large"
                         />
                         {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) ? (// Input for single icon value
-                            <FormField label="Single Icon Name">
-                                <Input
-                                    value={globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME) || ''}
-                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, e.target.value)}
-                                    placeholder="Enter an icon name (e.g., bx-map)"
-                                />
-                            </FormField>) : (<>
+                            <SingleIconNameInput/>) : (<>
                             {/* Field picker for icon names*/}
                             <FormField label="Icon Field">
                                 <FieldPickerSynced
@@ -309,6 +304,129 @@ function FallbackDot({color, size = 20, title = "Fallback icon"}) {
     );
 }
 
+// Does a given Boxicons class (e.g., "bx-home" / "bxs-map") render a ::before glyph?
+function hasGlyph(iconClass) {
+    if (typeof window === "undefined") return true; // SSR-safe no-op
+    return hasBoxiconGlyph(iconClass); // shared + memoized
+}
+
+// Resolve preview & suggestions for a raw icon input.
+// Bare names: try SOLID (bxs-) then NORMAL (bx-). If both exist -> preview SOLID + suggest NORMAL.
+function resolveIcon(raw) {
+    const s = (raw || "").trim().toLowerCase().replace(/\s+/g, "");
+    if (!s) return { previewClass: "", suggestions: [], error: "" };
+
+    const hasPrefix = s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-");
+    if (hasPrefix) {
+        const ok = hasGlyph(s);
+        const suggestions = [];
+        if (s.startsWith("bxs-")) {
+            const alt = "bx-" + s.slice(4); // suggest normal when solid was typed
+            if (hasGlyph(alt)) suggestions.push(alt);
+        } else if (s.startsWith("bx-")) {
+            const alt = "bxs-" + s.slice(3); // suggest solid when normal was typed
+            if (hasGlyph(alt)) suggestions.push(alt);
+        }
+        return { previewClass: ok ? `bx ${s}` : "", suggestions, error: ok ? "" : "Icon not found." };
+    }
+
+    // Bare name -> prefer SOLID, then NORMAL
+    const name   = s;
+    const solid  = `bxs-${name}`;
+    const normal = `bx-${name}`;
+    const solidOk  = hasGlyph(solid);
+    const normalOk = hasGlyph(normal);
+
+    if (solidOk && normalOk)  return { previewClass: `bx ${solid}`,  suggestions: [normal], error: "" };
+    if (solidOk)              return { previewClass: `bx ${solid}`,  suggestions: [],       error: "" };
+    if (normalOk)             return { previewClass: `bx ${normal}`, suggestions: [],       error: "" };
+    return { previewClass: "", suggestions: [], error: "Icon not found." };
+}
+
+// Acceptable to add? (empty => allowed circle; non-empty must resolve)
+function isValidIconOrEmpty(raw) {
+    const s = (raw || "").trim();
+    if (!s) return true;
+    const {previewClass} = resolveIcon(s);
+    return !!previewClass;
+}
+
+// Render preview: resolved icon -> that class; else try bx-circle; else dot
+function IconPreview({previewClass, color, title}) {
+    if (previewClass) {
+        return <i className={previewClass} style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
+                  title={title}/>;
+    }
+    if (hasGlyph("bxs-circle")) {
+        return <i className="bx bxs-circle" style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
+                  title={title || "circle"}/>;
+    }
+    return <FallbackDot color={color} title={title}/>;
+}
+
+// One-click "Use bx-..." / "Use bxs-..." buttons for icon variant suggestions
+function SuggestionChips({suggestions, onPick}) {
+    if (!suggestions.length) return null;
+    return (
+        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
+            {suggestions.map((cls) => (
+                <button
+                    key={cls}
+                    onClick={() => onPick(cls)}
+                    style={{
+                        border: "1px solid #ddd",
+                        background: "#f5f5f5",
+                        borderRadius: 6,
+                        padding: "2px 8px",
+                        cursor: "pointer",
+                    }}
+                    title={`Use ${cls}`}
+                >
+                    Use <code>{cls}</code>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+// "Single Icon Name" input with live preview, validation and variant suggestions
+function SingleIconNameInput() {
+    const globalConfig = useGlobalConfig();
+    const value = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME) || '';
+    const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
+    const previewColor = (useSingleColor && globalConfig.get(GlobalConfigKeys.SINGLE_COLOR)) || '#333333';
+
+    const {previewClass, suggestions} = resolveIcon(value);
+    const isEmpty = !value.trim();
+    const isInvalid = !isEmpty && !previewClass;
+
+    return (
+        <FormField label="Single Icon Name">
+            <div className="flex">
+                {/* Preview what the map will show: the resolved icon, or the default map pin */}
+                <IconPreview previewClass={previewClass || "bx bxs-map"} color={previewColor}
+                             title={value || "default map pin"}/>
+                <Input
+                    value={value}
+                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, e.target.value)}
+                    placeholder="Enter an icon name (e.g., bx-home / bxs-map / map)"
+                    style={{borderColor: isEmpty || isInvalid ? 'red' : undefined}}
+                />
+            </div>
+            {isEmpty && <p style={{color: 'red'}}>Icon name is required</p>}
+            {isInvalid && (
+                <p style={{color: 'red'}}>
+                    Icon not found — markers will fall back to the default map pin.
+                </p>
+            )}
+            <SuggestionChips
+                suggestions={suggestions}
+                onPick={(cls) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, cls)}
+            />
+        </FormField>
+    );
+}
+
 function Legend() {
     // ----------------------------- utils --------------------------------------
     const HEX6 = /^#[0-9A-Fa-f]{6}$/;
@@ -320,81 +438,6 @@ function Legend() {
             return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         }
     };
-
-    // Does a given Boxicons class (e.g., "bx-home" / "bxs-map") render a ::before glyph?
-    function hasGlyph(iconClass) {
-        if (typeof window === "undefined") return true; // SSR-safe no-op
-        if (!iconClass) return false;
-        const wrap = document.createElement("div");
-        wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;";
-        const i = document.createElement("i");
-        i.className = `bx ${iconClass}`;
-        i.style.cssText = "display:inline-block;font-size:24px;";
-        wrap.appendChild(i);
-        document.body.appendChild(wrap);
-        const cs = getComputedStyle(i, "::before");
-        const raw = cs?.content || "";
-        document.body.removeChild(wrap);
-        const content = raw.replace(/^['"]|['"]$/g, "");
-        return !!content && content !== "normal" && content !== "none";
-    }
-
-    // Resolve preview & suggestions for a raw icon input.
-    // Bare names: try normal (bx-) then solid (bxs-). If both exist -> preview normal + suggest solid.
-// Resolve preview & suggestions for a raw icon input.
-// Bare names: try SOLID (bxs-) then NORMAL (bx-). If both exist -> preview SOLID + suggest NORMAL.
-    function resolveIcon(raw) {
-        const s = (raw || "").trim().toLowerCase().replace(/\s+/g, "");
-        if (!s) return { previewClass: "", suggestions: [], error: "" };
-
-        const hasPrefix = s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-");
-        if (hasPrefix) {
-            const ok = hasGlyph(s);
-            const suggestions = [];
-            if (s.startsWith("bxs-")) {
-                const alt = "bx-" + s.slice(4); // suggest normal when solid was typed
-                if (hasGlyph(alt)) suggestions.push(alt);
-            } else if (s.startsWith("bx-")) {
-                const alt = "bxs-" + s.slice(3); // suggest solid when normal was typed
-                if (hasGlyph(alt)) suggestions.push(alt);
-            }
-            return { previewClass: ok ? `bx ${s}` : "", suggestions, error: ok ? "" : "Icon not found." };
-        }
-
-        // Bare name -> prefer SOLID, then NORMAL
-        const name   = s;
-        const solid  = `bxs-${name}`;
-        const normal = `bx-${name}`;
-        const solidOk  = hasGlyph(solid);
-        const normalOk = hasGlyph(normal);
-
-        if (solidOk && normalOk)  return { previewClass: `bx ${solid}`,  suggestions: [normal], error: "" };
-        if (solidOk)              return { previewClass: `bx ${solid}`,  suggestions: [],       error: "" };
-        if (normalOk)             return { previewClass: `bx ${normal}`, suggestions: [],       error: "" };
-        return { previewClass: "", suggestions: [], error: "Icon not found." };
-    }
-
-
-    // Acceptable to add? (empty => allowed circle; non-empty must resolve)
-    function isValidIconOrEmpty(raw) {
-        const s = (raw || "").trim();
-        if (!s) return true;
-        const {previewClass} = resolveIcon(s);
-        return !!previewClass;
-    }
-
-    // Render preview: resolved icon -> that class; else try bx-circle; else dot
-    function IconPreview({previewClass, color, title}) {
-        if (previewClass) {
-            return <i className={previewClass} style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
-                      title={title}/>;
-        }
-        if (hasGlyph("bxs-circle")) {
-            return <i className="bx bxs-circle" style={{color, fontSize: 20, marginRight: 4}} aria-hidden="true"
-                      title={title || "circle"}/>;
-        }
-        return <FallbackDot color={color} title={title}/>;
-    }
 
     const sanitize = (item, idx) => ({
         id: item?.id || uniqueId() || idx,
@@ -608,25 +651,11 @@ function Legend() {
                                             <strong>Icon error:</strong> {itemIconErr}
                                         </Text>
                                     )}
-                                    {isIconTouched && suggestions.length > 0 && (
-                                        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
-                                            {suggestions.map((cls) => (
-                                                <button
-                                                    key={cls}
-                                                    onClick={() => updateMarker(item.id, "icon", cls)}
-                                                    style={{
-                                                        border: "1px solid #ddd",
-                                                        background: "#f5f5f5",
-                                                        borderRadius: 6,
-                                                        padding: "2px 8px",
-                                                        cursor: "pointer",
-                                                    }}
-                                                    title={`Use ${cls}`}
-                                                >
-                                                    Use <code>{cls}</code>
-                                                </button>
-                                            ))}
-                                        </div>
+                                    {isIconTouched && (
+                                        <SuggestionChips
+                                            suggestions={suggestions}
+                                            onPick={(cls) => updateMarker(item.id, "icon", cls)}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -698,25 +727,11 @@ function Legend() {
                         </Text>
                     )}
                     {/* Suggestions (only after icon touched) */}
-                    {addTouched.icon && addIconState.suggestions.length > 0 && (
-                        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
-                            {addIconState.suggestions.map((cls) => (
-                                <button
-                                    key={cls}
-                                    onClick={() => setNewMarker({...newMarker, icon: cls})}
-                                    style={{
-                                        border: "1px solid #ddd",
-                                        background: "#f5f5f5",
-                                        borderRadius: 6,
-                                        padding: "2px 8px",
-                                        cursor: "pointer"
-                                    }}
-                                    title={`Use ${cls}`}
-                                >
-                                    Use <code>{cls}</code>
-                                </button>
-                            ))}
-                        </div>
+                    {addTouched.icon && (
+                        <SuggestionChips
+                            suggestions={addIconState.suggestions}
+                            onPick={(cls) => setNewMarker({...newMarker, icon: cls})}
+                        />
                     )}
                     {/* Submit-time fallback errors (e.g., bad color) */}
                     {formError && (
