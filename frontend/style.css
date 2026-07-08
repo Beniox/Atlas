@@ -17,7 +17,6 @@ details {
     border: 1px solid #e3e6ea;
     border-radius: 6px;
     background: #fff;
-    overflow: hidden;
 }
 
 summary {
@@ -25,6 +24,7 @@ summary {
     cursor: pointer;
     padding: 0.6rem 0.75rem;
     background-color: #f7f8fa;
+    border-radius: 5px;
     transition: background-color 0.15s ease;
     user-select: none;
 }
@@ -36,6 +36,63 @@ summary:hover {
 details[open] summary {
     background-color: #e6f2ff;
     border-bottom: 1px solid #d5e6fb;
+    border-radius: 5px 5px 0 0;
+}
+
+/* Help icons with tooltip (shown on hover, click or keyboard focus) */
+.help-icon-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.help-icon {
+    color: #8a939e;
+    font-size: 14px;
+    margin-left: 2px;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+    color: #2d7ff9;
+}
+
+.help-tooltip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: -8px;
+    width: max-content;
+    max-width: min(230px, 75vw);
+    background: #333;
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1.4;
+    white-space: normal; /* switch labels set nowrap — don't inherit it */
+    z-index: 10000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.help-icon-wrap:hover .help-tooltip,
+.help-icon-wrap:focus-within .help-tooltip {
+    display: block;
+}
+
+/* The SDK Switch truncates its label (overflow:hidden + nowrap), which clips
+   the tooltip and lets long labels overflow — allow the label to wrap instead */
+label:has(> .help-icon-wrap) {
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
+/* The switch pill has a fixed height — let it grow when the label wraps */
+[role="checkbox"]:has(.help-icon-wrap) {
+    height: auto;
+    min-height: 36px;
 }
 
 details > div {

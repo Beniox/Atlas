@@ -171,6 +171,42 @@ export function autoConfigureFieldsPaths(table, globalConfig) {
     return paths;
 }
 
+// Small "?" icon that explains a setting on hover, click or keyboard focus
+function HelpIcon({text}) {
+    const wrapRef = React.useRef(null);
+    const [tipStyle, setTipStyle] = React.useState(undefined);
+
+    // Keep the tooltip inside the extension area: clamp its horizontal
+    // position to the pane, whichever side that requires.
+    const updatePosition = () => {
+        const el = wrapRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const margin = 12;
+        const width = Math.min(230, window.innerWidth - 2 * margin);
+        const ideal = rect.left - 8; // default: open to the right of the icon
+        const clamped = Math.min(Math.max(ideal, margin), window.innerWidth - width - margin);
+        setTipStyle({left: clamped - rect.left, maxWidth: width});
+    };
+
+    return (
+        <span
+            ref={wrapRef}
+            className="help-icon-wrap"
+            onMouseEnter={updatePosition}
+            onClick={(e) => {
+                // don't toggle the switch / focus the field the icon sits in
+                e.preventDefault();
+                e.stopPropagation();
+                updatePosition();
+            }}
+        >
+            <i className="bx bx-help-circle help-icon" tabIndex={0} aria-label={text} onFocus={updatePosition}/>
+            <span className="help-tooltip" role="tooltip" style={tipStyle}>{text}</span>
+        </span>
+    );
+}
+
 // Green check / red hint shown in a section's <summary>
 function SectionBadge({done}) {
     return done
@@ -296,14 +332,15 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
             <details open={initiallyOpen.database}>
                 <summary>Database config <SectionBadge done={databaseDone}/></summary>
                 <Box marginTop={2}>
-                    <FormField label="Table" description="Select the table containing your data">
+                    <FormField label={<>Table <HelpIcon
+                        text="The table that contains the records you want to show on the map."/></>}>
                         <TablePickerSynced globalConfigKey={GlobalConfigKeys.TABLE_ID}/>
                     </FormField>
 
                     {table && (<>
                         <FormField
-                            label="Latitude Field"
-                            // description="Choose the field with latitude values for marker placement"
+                            label={<>Latitude Field <HelpIcon
+                                text="Number field with the north–south coordinate, from -90 to 90 (e.g. 52.5200)."/></>}
                         >
                             <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LATITUDE_FIELD}
                                                allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>
@@ -311,8 +348,8 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                         {validateFieldSelection(GlobalConfigKeys.LATITUDE_FIELD, 'Latitude Field')}
 
                         <FormField
-                            label="Longitude Field"
-                            // description="Choose the field with longitude values for marker placement"
+                            label={<>Longitude Field <HelpIcon
+                                text="Number field with the east–west coordinate, from -180 to 180 (e.g. 13.4050)."/></>}
                         >
                             <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LONGITUDE_FIELD}
                                                allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>
@@ -334,15 +371,16 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                         Please select a table in &ldquo;Database config&rdquo; first.
                     </p>) : (<>
                     <FormField
-                        label="Name Field"
-                        // description="Select the field used to display names for the markers"
+                        label={<>Name Field <HelpIcon
+                            text="Shown as the title of the popup that opens when a marker is clicked."/></>}
                     >
                         <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.NAME_FIELD}/>
                     </FormField>
                     {validateFieldSelection(GlobalConfigKeys.NAME_FIELD, 'Name Field')}
 
                     {/* Color Toggle */}
-                    <FormField label="Marker Color">
+                    <FormField label={<>Marker Color <HelpIcon
+                        text="Give all markers one fixed color, or let a field decide the color per record."/></>}>
                         <SwitchSynced
                             globalConfigKey={GlobalConfigKeys.USE_SINGLE_COLOR}
                             label="Use a single color for all markers"
@@ -356,7 +394,8 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                                 type={'color'}
                             />
                         </FormField>) : (<>
-                            <FormField label="Color Field">
+                            <FormField label={<>Color Field <HelpIcon
+                                text="Single select fields use the option's color. Text or formula fields accept any CSS color, e.g. red, #00ff00 or rgba(0,0,0,0.5)."/></>}>
                                 <FieldPickerSynced
                                     table={table}
                                     globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
@@ -369,16 +408,19 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
 
 
                     {/* Icon Toggle */}
-                    <FormField label="Marker Icon">
+                    <FormField label={<>Marker Icon <HelpIcon
+                        text="Give all markers one fixed icon, or let a field decide the icon per record. Icons come from Boxicons."/></>}>
                         <SwitchSynced
                             globalConfigKey={GlobalConfigKeys.USE_SINGLE_ICON}
                             label="Use a single icon for all markers"
                             size="large"
                         />
                         {globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON) ? (// Input for single icon value
-                            <SingleIconNameInput/>) : (<>
+                            <SingleIconNameInput label={<>Single Icon Name <HelpIcon
+                                text="A Boxicons icon name, e.g. map, bx-home or bxs-star. Browse all icons at v2.boxicons.com."/></>}/>) : (<>
                             {/* Field picker for icon names*/}
-                            <FormField label="Icon Field">
+                            <FormField label={<>Icon Field <HelpIcon
+                                text="Text or formula field with a Boxicons icon name per record, e.g. map, bx-home or bxs-star."/></>}>
                                 <FieldPickerSynced
                                     table={table}
                                     globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
@@ -396,7 +438,8 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                     </p>
 
                     {/* Icon Size Toggle */}
-                    <FormField label="Marker Icon Size">
+                    <FormField label={<>Marker Icon Size <HelpIcon
+                        text="Give all markers one fixed size, or let a number field decide the size per record."/></>}>
                         <SwitchSynced
                             globalConfigKey={GlobalConfigKeys.USE_SINGLE_ICON_SIZE}
                             label="Use a single size for all markers"
@@ -411,7 +454,8 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                                 placeholder="Enter icon size (e.g., 20)"
                             />
                         </FormField>) : (<>
-                            <FormField label="Icon Size Field">
+                            <FormField label={<>Icon Size Field <HelpIcon
+                                text="Number field with the marker size in pixels. 0 hides the marker; empty uses 32."/></>}>
                                 <FieldPickerSynced
                                     table={table}
                                     globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
@@ -431,29 +475,34 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                 <Box marginTop={2}>
                     <SwitchSynced
                         globalConfigKey={GlobalConfigKeys.USE_CLUSTERING}
-                        label="Use Clustering"
+                        label={<>Use Clustering <HelpIcon
+                            text="Groups nearby markers into numbered bubbles that expand when you zoom in. Recommended for large datasets."/></>}
                         size="large"
                     />
 
                     <SwitchSynced
                         globalConfigKey={GlobalConfigKeys.ALLOW_FULL_SCREEN}
-                        label="Allow Fullscreen"
+                        label={<>Allow Fullscreen <HelpIcon
+                            text="Adds a button to the map that expands it to fill the whole screen."/></>}
                         size="large"
                     />
 
                     <SwitchSynced
                         globalConfigKey={GlobalConfigKeys.GESTUREHANDLING}
-                        label="Zoom with ctrl + scroll"
+                        label={<>Zoom with ctrl + scroll <HelpIcon
+                            text="Prevents accidental zooming while scrolling the page: the map only zooms with Ctrl + scroll (pinch on mobile)."/></>}
                         size="large"
                     />
 
                     <SwitchSynced
                         globalConfigKey={GlobalConfigKeys.SHOW_INVALID_WARNING}
-                        label="Warn about invalid markers on the map"
+                        label={<>Warn about invalid markers on the map <HelpIcon
+                            text="Shows a warning on the map listing records that can't be placed (missing or invalid coordinates) or that use an unknown icon."/></>}
                         size="large"
                     />
 
-                    <FormField label="Map start position">
+                    <FormField label={<>Map start position <HelpIcon
+                        text="By default the map centers to fit all markers. Enable this to always start at a fixed position and zoom level instead."/></>}>
                         <SwitchSynced
                             globalConfigKey={GlobalConfigKeys.USE_FIXED_START_LOCATION}
                             label="Set a custom start position"
@@ -479,7 +528,8 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                                         placeholder="Start Longitude"
                                     />
                                 </FormField>
-                                <FormField label="Start Zoom">
+                                <FormField label={<>Start Zoom <HelpIcon
+                                    text="How close the map starts: 0 shows the whole world, ~10 a city, 18 street level."/></>}>
                                     <Input
                                         type="number"
                                         value={globalConfig.get(GlobalConfigKeys.START_ZOOM) ?? 0}
@@ -787,7 +837,8 @@ function Legend() {
         <div>
             <SwitchSynced
                 globalConfigKey={GlobalConfigKeys.SHOW_LEGEND}
-                label="Enable legend"
+                label={<>Enable legend <HelpIcon
+                    text="Shows a small box on the map that explains what your marker colors and icons mean. Define its entries below."/></>}
                 size="large"
             />
 
