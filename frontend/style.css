@@ -172,6 +172,51 @@ select {
     padding: 0.5rem;
 }
 
+/* ====================== Icon picker dialog ====================== */
+
+.icon-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 4px;
+    margin-top: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.icon-picker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    color: #333;
+    min-width: 0;
+}
+
+.icon-picker-item:hover,
+.icon-picker-item:focus {
+    background: #eef5ff;
+    border-color: #b3d7ff;
+}
+
+.icon-picker-item i {
+    font-size: 24px;
+}
+
+.icon-picker-name {
+    font-size: 10px;
+    color: #666;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ====================== First-run setup wizard ====================== */
 
 .setup-wizard {

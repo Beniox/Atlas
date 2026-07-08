@@ -20,6 +20,7 @@ import {ErrorBoundary} from "react-error-boundary";
 import {ReactSortable} from "react-sortablejs";
 import 'boxicons/css/boxicons.min.css';
 import {hasBoxiconGlyph} from "./iconUtils";
+import IconPickerDialog from "./iconPicker";
 import "./style.css"
 
 // Global Config Keys
@@ -432,11 +433,6 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
                     </FormField>
 
 
-                    <p>
-                        Go to <a href="https://v2.boxicons.com/" target="_blank"
-                                 rel="noopener noreferrer">v2.boxicons.com</a> to browse icon names.
-                    </p>
-
                     {/* Icon Size Toggle */}
                     <FormField label={<>Marker Icon Size <HelpIcon
                         text="Give all markers one fixed size, or let a number field decide the size per record."/></>}>
@@ -680,12 +676,14 @@ function SuggestionChips({suggestions, onPick}) {
     );
 }
 
-// "Single Icon Name" input with live preview, validation and variant suggestions
+// "Single Icon Name" input with live preview, validation, variant suggestions
+// and a searchable icon browser
 export function SingleIconNameInput({label = "Single Icon Name"}) {
     const globalConfig = useGlobalConfig();
     const value = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME) || '';
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const previewColor = (useSingleColor && globalConfig.get(GlobalConfigKeys.SINGLE_COLOR)) || '#333333';
+    const [isPickerOpen, setIsPickerOpen] = React.useState(false);
 
     const {previewClass, suggestions} = resolveIcon(value);
     const isEmpty = !value.trim();
@@ -701,8 +699,21 @@ export function SingleIconNameInput({label = "Single Icon Name"}) {
                     globalConfigKey={GlobalConfigKeys.SINGLE_ICON_NAME}
                     placeholder="Enter an icon name (e.g., bx-home / bxs-map / map)"
                     style={{borderColor: isEmpty || isInvalid ? 'red' : undefined}}
+                    flex="1 1 auto"
                 />
+                <Button variant="secondary" icon="search" onClick={() => setIsPickerOpen(true)}>
+                    Browse icons
+                </Button>
             </div>
+            {isPickerOpen && (
+                <IconPickerDialog
+                    onClose={() => setIsPickerOpen(false)}
+                    onPick={(name) => {
+                        globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_NAME, name);
+                        setIsPickerOpen(false);
+                    }}
+                />
+            )}
             {isEmpty && <p className="settings-error">Icon name is required</p>}
             {isInvalid && (
                 <p className="settings-error">
