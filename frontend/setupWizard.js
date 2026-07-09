@@ -18,6 +18,7 @@ import {
     getSetupStatus,
     defaultConfigPaths,
     autoConfigureFieldsPaths,
+    coordinateFieldWarning,
     SingleIconNameInput,
 } from './settings';
 import './style.css';
@@ -142,6 +143,9 @@ function SetupWizard({onFinish, onSkip}) {
                     e.g. <code>52.5200</code> and <code>13.4050</code>.
                     {status.hasLocation && ' We already found matching fields — just check they’re right.'}
                 </Text>
+                {coordinateFieldWarning(table) && (
+                    <p className="settings-error">{coordinateFieldWarning(table)}</p>
+                )}
                 <FormField label="Latitude field">
                     <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.LATITUDE_FIELD}
                                        allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>

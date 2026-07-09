@@ -64,7 +64,8 @@ function renderAtlasLegend(map, legendCtrlRef, showLegend, legendPosition, legen
         try { map.removeControl(legendCtrlRef.current); } catch { /* already removed */ }
         legendCtrlRef.current = null;
     }
-    if (!showLegend) return;
+    // Nothing to show for an enabled-but-empty legend
+    if (!showLegend || !(legendData || []).length) return;
 
     const ctrl = L.control({ position: legendPosition });
     ctrl.onAdd = function () {
@@ -119,6 +120,31 @@ function renderInvalidWarning(map, ctrlRef, invalidRecords) {
         // prevent scroll/clicks in the warning from affecting the map
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    ctrl.addTo(map);
+    ctrlRef.current = ctrl;
+}
+
+/**
+ * Centered "no markers" message so an empty map doesn't look broken.
+ * @param {L.Map} map
+ * @param {{current: L.Control|null}} ctrlRef
+ * @param {string} message - text to show, or '' to hide
+ */
+function renderEmptyState(map, ctrlRef, message) {
+    if (ctrlRef.current) {
+        try { map.removeControl(ctrlRef.current); } catch { /* already removed */ }
+        ctrlRef.current = null;
+    }
+    if (!message) return;
+
+    const ctrl = L.control({position: 'bottomleft'});
+    ctrl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'atlas-empty');
+        div.setAttribute('role', 'status');
+        div.innerHTML = `<i class="bx bx-map-alt" aria-hidden="true"></i> ${escapeHTML(message)}`;
+        L.DomEvent.disableClickPropagation(div);
         return div;
     };
     ctrl.addTo(map);
@@ -199,6 +225,7 @@ function Leaflet() {
     const legendCtrlRef = useRef(null);
     const fullscreenCtrlRef = useRef(null);
     const invalidWarningCtrlRef = useRef(null);
+    const emptyStateCtrlRef = useRef(null);
 
     const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]';
     const legendPosition = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft';
@@ -306,6 +333,16 @@ function Leaflet() {
             });
         }
 
+        // A single size of 0 hides every marker — almost always a mistake, warn once
+        if (useSingleIconSize && Number(singleIconSize) === 0) {
+            invalidRecords.push({
+                name: 'All markers',
+                reason: 'marker size is 0, so nothing is shown',
+            });
+        }
+
+        let placedCount = 0;
+
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
             records.forEach(record => {
@@ -329,6 +366,7 @@ function Leaflet() {
 
                     // Determine color
                     let color = 'black';
+                    let colorInvalid = false;
                     if (useSingleColor) {
                         if (CSS.supports('color', singleColor)) {
                             color = singleColor;
@@ -340,6 +378,8 @@ function Leaflet() {
                                 color = colorUtils.getHexForColor(airtableColor.color);
                             } else if (CSS.supports('color', airtableColor)) {
                                 color = airtableColor;
+                            } else {
+                                colorInvalid = true; // has a value, but not a usable color
                             }
                         }
                     }
@@ -353,6 +393,12 @@ function Leaflet() {
                                     reason: `unknown icon "${iconName}" (default pin shown)`,
                                 });
                             }
+                            if (colorInvalid) {
+                                invalidRecords.push({
+                                    name,
+                                    reason: 'unknown color (black shown)',
+                                });
+                            }
 
                             // Create a custom Leaflet divIcon
                             const customIcon = createCustomIcon(iconName, color, iconSize);
@@ -364,6 +410,7 @@ function Leaflet() {
                             } else {
                                 markerGroupRef.current.addLayer(marker);
                             }
+                            placedCount++;
                         } else {
                             invalidRecords.push({
                                 name,
@@ -386,6 +433,15 @@ function Leaflet() {
 
         if (mapRef.current) {
             renderInvalidWarning(mapRef.current, invalidWarningCtrlRef, showInvalidWarning ? invalidRecords : []);
+
+            // Distinguish "no data" from "misconfigured" so an empty map isn't mistaken for broken
+            let emptyMessage = '';
+            if (placedCount === 0) {
+                emptyMessage = !records || records.length === 0
+                    ? 'No records to show. Add rows to your table, or check your view’s filters.'
+                    : 'No records could be placed on the map — see the warning for details.';
+            }
+            renderEmptyState(mapRef.current, emptyStateCtrlRef, emptyMessage);
         }
 
         if (firstRun.current) {

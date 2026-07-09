@@ -131,6 +131,19 @@ export function defaultConfigPaths(globalConfig) {
     return paths;
 }
 
+// Coordinates must live in number (or formula) fields. If the table has fewer
+// than two, warn — the usual cause is a CSV import leaving them as text.
+// Returns a message string, or '' when there's nothing to warn about.
+export function coordinateFieldWarning(table) {
+    if (!table) return '';
+    const numericCount = table.fields.filter(
+        (f) => f.type === FieldType.NUMBER || f.type === FieldType.FORMULA
+    ).length;
+    if (numericCount >= 2) return '';
+    return 'This table has fewer than two number fields. Latitude and longitude must be ' +
+        'number fields — if yours are text (e.g. after a CSV import), change their type in Airtable first.';
+}
+
 // Paths that adapt the field config to the given table: drops field ids that
 // belong to another table and auto-suggests latitude/longitude (by field name)
 // and name (primary field).
@@ -323,9 +336,14 @@ function Settings({onDone, onReset}) {
 
     // check for permissions
     if (!globalConfig.hasPermissionToSet()) {
+        const configured = getSetupStatus(globalConfig, base).isComplete;
         return (<>
             <Box padding={3} className="about">
-                <Text>You do not have permission to edit these settings</Text>
+                <Text>
+                    {configured
+                        ? "You don't have permission to change these settings. Ask a base editor if the map needs adjusting."
+                        : "This map isn't set up yet, and you don't have permission to configure it. Ask a base editor to set it up."}
+                </Text>
                 <About/>
             </Box>
         </>);
@@ -352,6 +370,10 @@ function Settings({onDone, onReset}) {
                         text="The table that contains the records you want to show on the map."/></>}>
                         <TablePickerSynced globalConfigKey={GlobalConfigKeys.TABLE_ID}/>
                     </FormField>
+
+                    {table && coordinateFieldWarning(table) && (
+                        <p className="settings-error">{coordinateFieldWarning(table)}</p>
+                    )}
 
                     {table && (<>
                         <FormField

@@ -358,6 +358,26 @@ select {
     color: #666;
 }
 
+/* ================= Empty-state message on the map ================= */
+
+.atlas-empty {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #555;
+    max-width: 280px;
+}
+
+.atlas-empty i {
+    vertical-align: middle;
+    margin-right: 6px;
+    color: #888;
+}
+
 /* ================= Warning on the map (invalid records) ================= */
 
 .atlas-warning {
