@@ -16,6 +16,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
 
+// The bundler doesn't resolve the image files referenced by the package's
+// CSS, so the fullscreen control style has to come from the CDN.
 loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css").then();
 
 import "leaflet-gesture-handling"

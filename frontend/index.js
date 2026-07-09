@@ -17,6 +17,8 @@ import './style.css'
 import 'leaflet/dist/leaflet.css'; // Import Leaflet's CSS for proper rendering
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+// The bundler doesn't resolve the font files referenced by the bundled
+// boxicons CSS, so the font has to come from the CDN.
 loadCSSFromURLAsync("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css").then();
 
 function App() {
