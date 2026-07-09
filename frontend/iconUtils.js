@@ -63,6 +63,10 @@ export function resolveBoxiconClass(raw) {
     const s = String(raw || "").trim().toLowerCase().replace(/\s+/g, "");
     if (!s) return null;
 
+    // Record data ends up in an HTML class attribute — only safe class-name
+    // characters may pass (this also guards the optimistic path below).
+    if (!/^[a-z0-9-]+$/.test(s)) return null;
+
     // Already prefixed?
     if (s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-")) {
         if (hasBoxiconGlyph(s)) return `bx ${s}`;

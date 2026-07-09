@@ -524,7 +524,7 @@ function Settings({onDone, onReset}) {
                                 <FormField label="Start Latitude">
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) ?? 0}
+                                        value={globalConfig.get(GlobalConfigKeys.START_LATITUDE) ?? ''}
                                         onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LATITUDE,
                                             e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Latitude"
@@ -533,7 +533,7 @@ function Settings({onDone, onReset}) {
                                 <FormField label="Start Longitude">
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) ?? 0}
+                                        value={globalConfig.get(GlobalConfigKeys.START_LONGITUDE) ?? ''}
                                         onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_LONGITUDE,
                                             e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Longitude"
@@ -543,7 +543,7 @@ function Settings({onDone, onReset}) {
                                     text="How close the map starts: 0 shows the whole world, ~10 a city, 18 street level."/></>}>
                                     <Input
                                         type="number"
-                                        value={globalConfig.get(GlobalConfigKeys.START_ZOOM) ?? 0}
+                                        value={globalConfig.get(GlobalConfigKeys.START_ZOOM) ?? ''}
                                         onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.START_ZOOM,
                                             e.target.value === '' ? undefined : Number(e.target.value))}
                                         placeholder="Start Zoom"

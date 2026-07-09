@@ -153,21 +153,24 @@ function Leaflet() {
 
     const table = base.getTableByIdIfExists(tableId); // should never happen that table is null
 
-    const opts = {
-        tableId,
-        latitudeFieldId,
-        longitudeFieldId,
-        nameFieldId,
-    }
+    // Only watch the fields the map actually uses, so unrelated cell edits
+    // don't rebuild the markers. Skip ids of fields that no longer exist —
+    // useRecords would throw on them.
+    const watchedFieldIds = [latitudeFieldId, longitudeFieldId, nameFieldId];
     if (!useSingleColor) {
-        opts.colorFieldId = colorFieldId;
+        watchedFieldIds.push(colorFieldId);
     }
     if (!useSingleIcon) {
-        opts.iconFieldId = iconFieldId;
+        watchedFieldIds.push(iconFieldId);
     }
     if (!useSingleIconSize) {
-        opts.iconSizeFieldId = iconSizeFieldId;
+        watchedFieldIds.push(iconSizeFieldId);
     }
+    const opts = {
+        fields: table
+            ? watchedFieldIds.filter((fieldId) => fieldId && table.getFieldByIdIfExists(fieldId))
+            : [],
+    };
 
     const firstRun = useRef(true);
 
@@ -369,6 +372,10 @@ function Leaflet() {
                     }
                 } catch (e) {
                     console.error(e);
+                    invalidRecords.push({
+                        name: record.name,
+                        reason: 'could not be read (was a configured field deleted?)',
+                    });
                 }
             });
         }
