@@ -27,7 +27,22 @@ const MAX_SHOWN = 300;
 function IconPickerDialog({onPick, onClose}) {
     const [query, setQuery] = React.useState('');
     const [stylePrefix, setStylePrefix] = React.useState('');
-    const allIcons = React.useMemo(getAllBoxiconNames, []);
+    const [allIcons, setAllIcons] = React.useState([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    // The icon list comes from the (possibly still loading) stylesheet
+    React.useEffect(() => {
+        let cancelled = false;
+        getAllBoxiconNames().then((names) => {
+            if (!cancelled) {
+                setAllIcons(names);
+                setIsLoading(false);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // Lock the page scroll behind the dialog; the icon grid scrolls on its own
     React.useEffect(() => {
@@ -50,28 +65,31 @@ function IconPickerDialog({onPick, onClose}) {
             <Dialog.CloseButton/>
             <Heading size="small">Choose an icon</Heading>
 
-            <div className="flex" style={{marginBottom: 8}}>
-                <Input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search icons, e.g. home, star, coffee…"
-                    autoFocus={true}
-                    flex="1 1 auto"
-                />
-                <SelectButtons
-                    value={stylePrefix}
-                    onChange={(v) => setStylePrefix(v)}
-                    options={STYLE_OPTIONS}
-                    size="small"
-                    width="220px"
-                />
-            </div>
+            <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search icons, e.g. home, star, coffee…"
+                autoFocus={true}
+                width="100%"
+                marginTop={2}
+                marginBottom={2}
+            />
+            <SelectButtons
+                value={stylePrefix}
+                onChange={(v) => setStylePrefix(v)}
+                options={STYLE_OPTIONS}
+                size="small"
+                width="100%"
+            />
 
-            {allIcons.length === 0 && (
-                <Text>The icon font hasn&apos;t loaded yet — please try again in a moment.</Text>
+            {isLoading && (
+                <Text marginTop={2}>Loading icons…</Text>
+            )}
+            {!isLoading && allIcons.length === 0 && (
+                <Text marginTop={2}>The icon list could not be loaded — please try again.</Text>
             )}
             {allIcons.length > 0 && filtered.length === 0 && (
-                <Text>No icons match &ldquo;{query}&rdquo;.</Text>
+                <Text marginTop={2}>No icons match &ldquo;{query}&rdquo;.</Text>
             )}
 
             <div className="icon-picker-grid">

@@ -7,7 +7,6 @@ import {
 import React, {useEffect, useState} from 'react';
 import {ErrorBoundary} from "react-error-boundary";
 import {base} from "@airtable/blocks";
-import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
 
 import Settings, {getSetupStatus, GlobalConfigKeys} from "./settings";
 import SetupWizard from "./setupWizard";
@@ -17,9 +16,7 @@ import './style.css'
 import 'leaflet/dist/leaflet.css'; // Import Leaflet's CSS for proper rendering
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-// The bundler doesn't resolve the font files referenced by the bundled
-// boxicons CSS, so the font has to come from the CDN.
-loadCSSFromURLAsync("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css").then();
+// The boxicons stylesheet (CDN) is loaded by iconUtils.js
 
 function App() {
     const [isShowingSettings, setIsShowingSettings] = useState(false);
@@ -29,7 +26,6 @@ function App() {
     });
 
     const globalConfig = useGlobalConfig();
-    const [openMarkerConfig, setOpenMarkerConfig] = useState(false);
 
     const {isComplete} = getSetupStatus(globalConfig, base);
     const wizardCompleted = globalConfig.get(GlobalConfigKeys.SETUP_WIZARD_COMPLETED);
@@ -50,10 +46,6 @@ function App() {
         return (
             <SetupWizard
                 onFinish={() => setIsShowingSettings(false)}
-                onOpenMarkerSettings={() => {
-                    setOpenMarkerConfig(true);
-                    setIsShowingSettings(true);
-                }}
                 onSkip={() => setIsShowingSettings(true)}
             />
         );
@@ -63,11 +55,7 @@ function App() {
     if (!isComplete || isShowingSettings) {
         return (
             <Settings
-                openMarkerConfig={openMarkerConfig}
-                onDone={() => {
-                    setIsShowingSettings(false);
-                    setOpenMarkerConfig(false);
-                }}
+                onDone={() => setIsShowingSettings(false)}
                 onReset={() => setIsShowingSettings(false)}
             />
         );

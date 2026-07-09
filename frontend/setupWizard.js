@@ -4,6 +4,8 @@ import {
     FieldPickerSynced,
     FormField,
     Heading,
+    Input,
+    SelectButtons,
     TablePickerSynced,
     Text,
     useBase,
@@ -20,16 +22,21 @@ import {
 } from './settings';
 import './style.css';
 
+const SOURCE_OPTIONS = [
+    {value: 'single', label: 'Same for all markers'},
+    {value: 'field', label: 'From a field'},
+];
+
 /**
  * First-run guided setup. Walks new users through the required choices one at
  * a time, with the jargon-free explanations the full settings can't afford.
+ * Choosing "custom" marker styling adds one step each for icon, color and
+ * size, so the whole configuration happens inside the wizard.
  *
  * @param {() => void} onFinish - called when the wizard completes
- * @param {() => void} onOpenMarkerSettings - called instead of onFinish when
- *        the user chose per-record marker styling and wants the full settings
  * @param {() => void} onSkip - called when the user skips to the full settings
  */
-function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
+function SetupWizard({onFinish, onSkip}) {
     const base = useBase();
     const globalConfig = useGlobalConfig();
     const table = base.getTableByIdIfExists(globalConfig.get(GlobalConfigKeys.TABLE_ID));
@@ -64,11 +71,7 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
 
     const finish = async () => {
         await markComplete();
-        if (markerStyle === 'custom') {
-            onOpenMarkerSettings();
-        } else {
-            onFinish();
-        }
+        onFinish();
     };
 
     const skip = async () => {
@@ -81,7 +84,40 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
         return field ? field.name : '—';
     };
 
+    const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
+    const useSingleIcon = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON);
+    const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
     const singleColor = globalConfig.get(GlobalConfigKeys.SINGLE_COLOR) || '#2d7ff9';
+    const singleIconName = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_NAME);
+    const singleIconSize = globalConfig.get(GlobalConfigKeys.SINGLE_ICON_SIZE);
+
+    const selectSimple = () => {
+        setMarkerStyle('simple');
+        globalConfig.setPathsAsync([
+            {path: [GlobalConfigKeys.USE_SINGLE_COLOR], value: true},
+            {path: [GlobalConfigKeys.USE_SINGLE_ICON], value: true},
+            {path: [GlobalConfigKeys.USE_SINGLE_ICON_SIZE], value: true},
+        ]).catch((e) => console.error(e));
+    };
+
+    const selectCustom = () => {
+        setMarkerStyle('custom');
+        globalConfig.setPathsAsync([
+            {path: [GlobalConfigKeys.USE_SINGLE_COLOR], value: false},
+            {path: [GlobalConfigKeys.USE_SINGLE_ICON], value: false},
+            {path: [GlobalConfigKeys.USE_SINGLE_ICON_SIZE], value: false},
+        ]).catch((e) => console.error(e));
+    };
+
+    // "Same for all markers" / "From a field" toggle used by the aspect steps
+    const sourceButtons = (useSingleKey, useSingleValue) => (
+        <SelectButtons
+            value={useSingleValue ? 'single' : 'field'}
+            onChange={(v) => globalConfig.setAsync(useSingleKey, v === 'single')}
+            options={SOURCE_OPTIONS}
+            size="small"
+        />
+    );
 
     const steps = [
         {
@@ -137,7 +173,7 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
                     <button
                         type="button"
                         className={`wizard-card ${markerStyle === 'simple' ? 'wizard-card--selected' : ''}`}
-                        onClick={() => setMarkerStyle('simple')}
+                        onClick={selectSimple}
                     >
                         <i className="bx bxs-map" style={{fontSize: 28, color: singleColor}} aria-hidden="true"/>
                         <strong>Simple</strong>
@@ -146,15 +182,16 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
                     <button
                         type="button"
                         className={`wizard-card ${markerStyle === 'custom' ? 'wizard-card--selected' : ''}`}
-                        onClick={() => setMarkerStyle('custom')}
+                        onClick={selectCustom}
                     >
                         <i className="bx bx-palette" style={{fontSize: 28}} aria-hidden="true"/>
                         <strong>Custom per record</strong>
-                        <span>Drive color, icon and size from fields in your table.</span>
+                        <span>Icon, color and size come from fields in your table.</span>
                     </button>
                 </div>
                 {markerStyle === 'simple' ? (
                     <Box marginTop={3}>
+                        <SingleIconNameInput label="Marker icon"/>
                         <FormField label="Marker color">
                             <input
                                 type="color"
@@ -163,35 +200,127 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
                                 aria-label="Marker color"
                             />
                         </FormField>
-                        <SingleIconNameInput label="Marker icon"/>
                     </Box>
                 ) : (
                     <Text marginTop={3}>
-                        No problem — we&apos;ll take you to the marker settings after the last
-                        step. Until then, markers use the simple style, so your map works
-                        right away.
+                        The next steps let you pick, for each of icon, color and size,
+                        either a field from your table or one shared value.
                     </Text>
                 )}
             </>),
         },
-        {
-            title: 'You’re all set!',
-            canNext: true,
-            content: (<>
-                <ul className="wizard-summary">
-                    <li><b>Table:</b> {table ? table.name : '—'}</li>
-                    <li><b>Latitude / Longitude:</b> {fieldName(GlobalConfigKeys.LATITUDE_FIELD)} / {fieldName(GlobalConfigKeys.LONGITUDE_FIELD)}</li>
-                    <li><b>Popup title:</b> {fieldName(GlobalConfigKeys.NAME_FIELD)}</li>
-                    <li><b>Marker style:</b> {markerStyle === 'simple' ? 'simple (one icon & color)' : 'custom per record'}</li>
-                </ul>
-                <Text marginTop={2}>
-                    You can fine-tune everything later — clustering, fullscreen, a legend,
-                    a fixed start position — via the <i className="bx bx-cog" aria-hidden="true"/> settings
-                    button in the top right corner.
-                </Text>
-            </>),
-        },
     ];
+
+    if (markerStyle === 'custom') {
+        steps.push(
+            {
+                title: 'Marker icon',
+                canNext: status.iconOk,
+                content: (<>
+                    <Text marginBottom={2}>Where should the marker icon come from?</Text>
+                    {sourceButtons(GlobalConfigKeys.USE_SINGLE_ICON, useSingleIcon)}
+                    <Box marginTop={2}>
+                        {useSingleIcon ? (
+                            <SingleIconNameInput label="Icon"/>
+                        ) : (
+                            <FormField label="Icon field">
+                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.BOX_ICON_FIELD}
+                                                   allowedTypes={[FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}/>
+                                <Text textColor="light" marginTop={1}>
+                                    A text field with a Boxicons name per record, e.g. map, bx-home
+                                    or bxs-star. Records with an empty or unknown name get the
+                                    default pin.
+                                </Text>
+                            </FormField>
+                        )}
+                    </Box>
+                </>),
+            },
+            {
+                title: 'Marker color',
+                canNext: status.colorOk,
+                content: (<>
+                    <Text marginBottom={2}>Where should the marker color come from?</Text>
+                    {sourceButtons(GlobalConfigKeys.USE_SINGLE_COLOR, useSingleColor)}
+                    <Box marginTop={2}>
+                        {useSingleColor ? (
+                            <FormField label="Color">
+                                <input
+                                    type="color"
+                                    value={singleColor}
+                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_COLOR, e.target.value)}
+                                    aria-label="Marker color"
+                                />
+                            </FormField>
+                        ) : (
+                            <FormField label="Color field">
+                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.COLOR_FIELD}
+                                                   allowedTypes={[FieldType.SINGLE_SELECT, FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA]}/>
+                                <Text textColor="light" marginTop={1}>
+                                    Single select fields use the option&apos;s color. Text and formula
+                                    fields accept any CSS color, e.g. red, #00ff00 or rgba(0,0,0,0.5).
+                                </Text>
+                            </FormField>
+                        )}
+                    </Box>
+                </>),
+            },
+            {
+                title: 'Marker size',
+                canNext: status.sizeOk,
+                content: (<>
+                    <Text marginBottom={2}>Where should the marker size come from?</Text>
+                    {sourceButtons(GlobalConfigKeys.USE_SINGLE_ICON_SIZE, useSingleIconSize)}
+                    <Box marginTop={2}>
+                        {useSingleIconSize ? (
+                            <FormField label="Size (pixels)">
+                                <Input
+                                    type="number"
+                                    value={singleIconSize ?? ''}
+                                    onChange={(e) => globalConfig.setAsync(GlobalConfigKeys.SINGLE_ICON_SIZE,
+                                        e.target.value === '' ? undefined : Number(e.target.value))}
+                                    placeholder="e.g. 32"
+                                />
+                            </FormField>
+                        ) : (
+                            <FormField label="Size field">
+                                <FieldPickerSynced table={table} globalConfigKey={GlobalConfigKeys.ICON_SIZE_FIELD}
+                                                   allowedTypes={[FieldType.NUMBER, FieldType.FORMULA]}/>
+                                <Text textColor="light" marginTop={1}>
+                                    A number field with the size in pixels. 0 hides the marker;
+                                    empty uses 32.
+                                </Text>
+                            </FormField>
+                        )}
+                    </Box>
+                </>),
+            },
+        );
+    }
+
+    steps.push({
+        title: 'You’re all set!',
+        canNext: true,
+        content: (<>
+            <ul className="wizard-summary">
+                <li><b>Table:</b> {table ? table.name : '—'}</li>
+                <li><b>Latitude / Longitude:</b> {fieldName(GlobalConfigKeys.LATITUDE_FIELD)} / {fieldName(GlobalConfigKeys.LONGITUDE_FIELD)}</li>
+                <li><b>Popup title:</b> {fieldName(GlobalConfigKeys.NAME_FIELD)}</li>
+                {markerStyle === 'simple' ? (
+                    <li><b>Marker style:</b> one shared icon and color</li>
+                ) : (<>
+                    <li><b>Marker icon:</b> {useSingleIcon ? (singleIconName || 'map') : `from “${fieldName(GlobalConfigKeys.BOX_ICON_FIELD)}”`}</li>
+                    <li><b>Marker color:</b> {useSingleColor ? 'same for all markers' : `from “${fieldName(GlobalConfigKeys.COLOR_FIELD)}”`}</li>
+                    <li><b>Marker size:</b> {useSingleIconSize ? `${singleIconSize ?? 32}px` : `from “${fieldName(GlobalConfigKeys.ICON_SIZE_FIELD)}”`}</li>
+                </>)}
+            </ul>
+            <Text marginTop={2}>
+                You can fine-tune everything later — clustering, fullscreen, a legend,
+                a fixed start position — via the <i className="bx bx-cog" aria-hidden="true"/> settings
+                button in the top right corner.
+            </Text>
+        </>),
+    });
 
     const isLast = step === steps.length - 1;
 
@@ -217,7 +346,7 @@ function SetupWizard({onFinish, onOpenMarkerSettings, onSkip}) {
                 <Text className="wizard-progress">Step {step + 1} of {steps.length}</Text>
                 {isLast ? (
                     <Button variant="primary" onClick={finish}>
-                        {markerStyle === 'custom' ? 'Open marker settings' : 'Open map'}
+                        Open map
                     </Button>
                 ) : (
                     <Button variant="primary" disabled={!steps[step].canNext} onClick={() => setStep(step + 1)}>

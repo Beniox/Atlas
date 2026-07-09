@@ -5,7 +5,7 @@ import {
     Box,
     colorUtils,
 } from '@airtable/blocks/ui';
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import L from 'leaflet';
 import {createCustomIcon} from "./CustomIcon";
 import {GlobalConfigKeys} from "./settings";
@@ -27,7 +27,7 @@ import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
 
 // import 'leaflet-edgebuffer';
 
-import {escapeHTML, hasBoxiconGlyph, resolveBoxiconClass} from './iconUtils';
+import {boxiconsCssLoaded, escapeHTML, hasBoxiconGlyph, resolveBoxiconClass} from './iconUtils';
 
 // Build one legend row's HTML (icon + label); uses circle fallback if needed
 function legendItemHTML(item) {
@@ -171,6 +171,19 @@ function Leaflet() {
 
     const firstRun = useRef(true);
 
+    // The icon stylesheet loads asynchronously; markers and legend rendered
+    // before it arrives fall back to the default pin/circle, so re-render
+    // them once it's ready.
+    const [iconsReady, setIconsReady] = useState(false);
+    useEffect(() => {
+        let cancelled = false;
+        boxiconsCssLoaded.then(() => {
+            if (!cancelled) setIconsReady(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const records = useRecords(table, opts);
 
@@ -265,7 +278,7 @@ function Leaflet() {
         } catch (e) {
             console.error(e);
         }
-    }, [showLegend, legendPosition, legendJSON]);
+    }, [showLegend, legendPosition, legendJSON, iconsReady]);
 
     useEffect(() => {
 
@@ -386,6 +399,7 @@ function Leaflet() {
         singleIconSize,
         useClustering,
         showInvalidWarning,
+        iconsReady,
     ]);
 
     function goToHome() {

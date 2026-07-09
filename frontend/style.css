@@ -172,8 +172,9 @@ select {
     align-items: center;
 }
 
-/* Clickable icon preview that opens the icon browser */
-.legend-item-iconbtn {
+/* Clickable icon preview that opens the icon browser
+   (used in the legend rows and the single-icon input) */
+.icon-choose-btn {
     background: #fff;
     border: 1px dashed #c5ccd3;
     border-radius: 6px;
@@ -184,10 +185,40 @@ select {
     justify-content: center;
 }
 
-.legend-item-iconbtn:hover,
-.legend-item-iconbtn:focus {
+.icon-choose-btn:hover,
+.icon-choose-btn:focus {
     border-color: #2d7ff9;
     background: #eef5ff;
+}
+
+/* Icon variant suggestions, e.g. "Use the solid version" */
+.suggestion-chips {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+}
+
+.suggestion-chip:hover {
+    background: #eef5ff;
+    border-color: #b3d7ff;
+}
+
+.suggestion-chip i {
+    font-size: 16px;
 }
 
 .legend-item-delete {

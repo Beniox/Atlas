@@ -86,6 +86,9 @@ export function getSetupStatus(globalConfig, base) {
         hasLocation,
         hasName,
         hasMarkerStyle,
+        colorOk,
+        iconOk,
+        sizeOk,
         isComplete: hasTable && hasLocation && hasName && hasMarkerStyle,
         steps: [
             {label: 'Select a table', done: hasTable},
@@ -242,7 +245,7 @@ function SetupChecklist({steps, isComplete, onDone}) {
     );
 }
 
-function Settings({onDone, openMarkerConfig = false, onReset}) {
+function Settings({onDone, onReset}) {
     const base = useBase();
     const globalConfig = useGlobalConfig();
     const tableId = globalConfig.get(GlobalConfigKeys.TABLE_ID);
@@ -256,7 +259,7 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
     // so the user keeps control of the sections afterwards)
     const [initiallyOpen] = React.useState(() => ({
         database: !databaseDone,
-        marker: openMarkerConfig || !markerDone,
+        marker: !markerDone,
     }));
 
     const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
@@ -655,25 +658,29 @@ function IconPreview({previewClass, color, title}) {
     return <FallbackDot color={color} title={title}/>;
 }
 
-// One-click "Use bx-..." / "Use bxs-..." buttons for icon variant suggestions
+// Human-readable name for a Boxicons style prefix
+function variantLabel(cls) {
+    if (cls.startsWith('bxs-')) return 'solid';
+    if (cls.startsWith('bxl-')) return 'logo';
+    return 'regular';
+}
+
+// One-click buttons offering the other style of the typed icon,
+// e.g. "Use the solid version" with a preview of that icon
 function SuggestionChips({suggestions, onPick}) {
     if (!suggestions.length) return null;
     return (
-        <div style={{display: "inline-flex", gap: 8, flexWrap: "wrap", marginTop: 4}}>
+        <div className="suggestion-chips">
             {suggestions.map((cls) => (
                 <button
                     key={cls}
+                    type="button"
+                    className="suggestion-chip"
                     onClick={() => onPick(cls)}
-                    style={{
-                        border: "1px solid #ddd",
-                        background: "#f5f5f5",
-                        borderRadius: 6,
-                        padding: "2px 8px",
-                        cursor: "pointer",
-                    }}
-                    title={`Use ${cls}`}
+                    title={cls}
                 >
-                    Use <code>{cls}</code>
+                    <i className={`bx ${cls}`} aria-hidden="true"/>
+                    Use the {variantLabel(cls)} version
                 </button>
             ))}
         </div>
@@ -696,16 +703,23 @@ export function SingleIconNameInput({label = "Single Icon Name"}) {
     return (
         <FormField label={label}>
             <div className="flex">
-                {/* Preview what the map will show: the resolved icon, or the default map pin */}
-                <IconPreview previewClass={previewClass || "bx bxs-map"} color={previewColor}
-                             title={value || "default map pin"}/>
+                {/* Current icon (or the default map pin); click to browse */}
+                <button
+                    type="button"
+                    className="icon-choose-btn"
+                    title="Browse icons"
+                    onClick={() => setIsPickerOpen(true)}
+                >
+                    <IconPreview previewClass={previewClass || "bx bxs-map"} color={previewColor}
+                                 title={value || "default map pin"}/>
+                </button>
                 <InputSynced
                     globalConfigKey={GlobalConfigKeys.SINGLE_ICON_NAME}
-                    placeholder="Enter an icon name (e.g., bx-home / bxs-map / map)"
+                    placeholder="Icon name, e.g. home or star"
                     style={{borderColor: isEmpty || isInvalid ? 'red' : undefined}}
                     flex="1 1 auto"
                 />
-                <Button variant="secondary" icon="search" onClick={() => setIsPickerOpen(true)}>
+                <Button variant="default" icon="search" onClick={() => setIsPickerOpen(true)}>
                     Browse icons
                 </Button>
             </div>
@@ -872,7 +886,7 @@ function Legend() {
                                 {/* Click the icon to open the icon browser */}
                                 <button
                                     type="button"
-                                    className="legend-item-iconbtn"
+                                    className="icon-choose-btn"
                                     title="Choose an icon"
                                     onClick={() => setPickerForId(item.id)}
                                 >
