@@ -7,7 +7,7 @@ import {
     Heading,
     Input,
     InputSynced,
-    Select,
+    SelectButtons,
     SwitchSynced,
     TablePickerSynced,
     Text,
@@ -642,14 +642,6 @@ function resolveIcon(raw) {
     return { previewClass: "", suggestions: [], error: "Icon not found." };
 }
 
-// Acceptable to add? (empty => allowed circle; non-empty must resolve)
-function isValidIconOrEmpty(raw) {
-    const s = (raw || "").trim();
-    if (!s) return true;
-    const {previewClass} = resolveIcon(s);
-    return !!previewClass;
-}
-
 // Render preview: resolved icon -> that class; else try bx-circle; else dot
 function IconPreview({previewClass, color, title}) {
     if (previewClass) {
@@ -742,8 +734,6 @@ export function SingleIconNameInput({label = "Single Icon Name"}) {
 
 function Legend() {
     // ----------------------------- utils --------------------------------------
-    const HEX6 = /^#[0-9A-Fa-f]{6}$/;
-
     const uniqueId = () => {
         try {
             return crypto.randomUUID();
@@ -768,6 +758,7 @@ function Legend() {
         {value: "bottomright", label: "Bottom right"},
     ];
 
+    const showLegend = globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false;
     const position = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || "bottomleft";
 
     const initialItems = React.useMemo(() => {
@@ -783,12 +774,10 @@ function Legend() {
 
     // ------------------------------ state -------------------------------------
     const [items, setItems] = React.useState(initialItems);
-    const [newMarker, setNewMarker] = React.useState({text: "", color: "#000000", icon: ""});
-    const [formError, setFormError] = React.useState("");
     // Track per-item "touched" state for name & icon separately
     const [touched, setTouched] = React.useState({}); // { [id]: { text?:boolean, icon?:boolean } }
-    // Track add-form touched state
-    const [addTouched, setAddTouched] = React.useState({text: false, icon: false});
+    // Which entry's icon picker dialog is open
+    const [pickerForId, setPickerForId] = React.useState(null);
 
     // ---------------------------- persistence ---------------------------------
     const saveRef = React.useRef(null);
@@ -806,54 +795,34 @@ function Legend() {
     }, [items, globalConfig]);
 
     // --------------------------- validation -----------------------------------
-    const nameError = (s) => (!s.trim() ? "Name is required." : "");
+    const nameError = (s) => (!s.trim() ? "A label is required." : "");
     const iconErrorMsg = "Icon not found. Leave empty to use a circle.";
 
-    const validateMarker = (m) => {
-        if (nameError(m.text)) return nameError(m.text);
-        if (!HEX6.test(m.color)) return "Please enter a valid hex color (e.g., #FF5733).";
-        if (!isValidIconOrEmpty(m.icon)) return iconErrorMsg;
-        return "";
-    };
-
     // ------------------------------ actions -----------------------------------
-    const deleteMarker = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
+    const deleteItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
 
-    const updateMarker = (id, key, value) => {
+    const updateItem = (id, key, value) => {
         setItems((prev) => prev.map((it) => (it.id === id ? {...it, [key]: value} : it)));
     };
 
+    const markTouched = (id, key) => {
+        setTouched((prev) => ({...prev, [id]: {...(prev[id] || {}), [key]: true}}));
+    };
+
     const onItemTextChange = (id, value) => {
-        setTouched((prev) => ({...prev, [id]: {...(prev[id] || {}), text: true}}));
-        updateMarker(id, "text", value);
+        markTouched(id, "text");
+        updateItem(id, "text", value);
     };
 
     const onItemIconChange = (id, value) => {
-        setTouched((prev) => ({...prev, [id]: {...(prev[id] || {}), icon: true}}));
-        updateMarker(id, "icon", value);
+        markTouched(id, "icon");
+        updateItem(id, "icon", value);
     };
 
-    const addMarker = () => {
-        const err = validateMarker(newMarker);
-        if (err) {
-            setFormError(err);
-            return;
-        }
-        setItems((prev) => [...prev, {id: uniqueId(), ...newMarker}]);
-        setNewMarker({text: "", color: "#000000", icon: ""});
-        setFormError("");
-        setAddTouched({text: false, icon: false});
+    // New entries are edited inline, like any existing entry
+    const addItem = () => {
+        setItems((prev) => [...prev, {id: uniqueId(), text: "", color: "#2d7ff9", icon: ""}]);
     };
-
-    // Live state for Add form
-    const addIconState = resolveIcon(newMarker.icon);
-    const addNameErr = nameError(newMarker.text);
-    const addIconErr = isValidIconOrEmpty(newMarker.icon) ? "" : iconErrorMsg;
-
-    const canSubmit =
-        !addNameErr &&
-        HEX6.test(newMarker.color) &&
-        !addIconErr; // (empty icon counts as valid fallback)
 
     // ------------------------------- UI ---------------------------------------
     return (
@@ -865,57 +834,65 @@ function Legend() {
                 size="large"
             />
 
-            <Text>Select where the legend will appear on the map.</Text>
+            {!showLegend && (
+                <Text textColor="light" marginTop={2}>
+                    Enable the legend to configure its position and entries.
+                </Text>
+            )}
 
-            <Select
-                options={LEGEND_POSITIONS}
-                value={position}
-                onChange={(v) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, v)}
-            />
+            {showLegend && (<>
+            <FormField label="Position" marginTop={2}>
+                <SelectButtons
+                    options={LEGEND_POSITIONS}
+                    value={position}
+                    onChange={(v) => globalConfig.setAsync(GlobalConfigKeys.LEGEND_POSITION, v)}
+                    size="small"
+                />
+            </FormField>
 
-
+            <FormField label={<>Entries <HelpIcon
+                text="Each entry is one line in the legend: an icon, a color and a label. Click the icon to change it, drag the handle to reorder."/></>}>
+            {items.length === 0 && (
+                <Text textColor="light">No entries yet — add your first one below.</Text>
+            )}
             <ReactSortable list={items} setList={setItems} handle=".handle" animation={150}>
                 {items.map((item) => {
                     const {previewClass, suggestions, error: iconErrCandidate} = resolveIcon(item.icon);
-                    const isNameTouched = !!touched[item.id]?.text;
                     const isIconTouched = !!touched[item.id]?.icon;
-
-                    const itemNameErr = nameError(item.text);
-                    const showNameErr = isNameTouched && !!itemNameErr;
-
-                    const itemIconErr = iconErrCandidate ? iconErrorMsg : "";
-                    const showIconErr = isIconTouched && !!itemIconErr;
+                    const showNameErr = !!touched[item.id]?.text && !!nameError(item.text);
+                    const showIconErr = isIconTouched && !!iconErrCandidate;
 
                     return (
-
-                        <div
-                            key={item.id}
-                            className="legend-item"
-                        >
-                            <div className="flex">
-                                <span className="handle" style={{cursor: "grab", marginRight: 4}}>
+                        <div key={item.id} className="legend-item">
+                            <div className="legend-item-row">
+                                <span className="handle legend-item-handle" title="Drag to reorder">
                                     <i className="bx bx-move"/>
                                 </span>
 
-                                {/* Preview: resolved icon; else circle fallback (or dot if font missing) */}
-                                <IconPreview previewClass={previewClass} color={item.color}
-                                             title={item.icon || "circle"}/>
+                                {/* Click the icon to open the icon browser */}
+                                <button
+                                    type="button"
+                                    className="legend-item-iconbtn"
+                                    title="Choose an icon"
+                                    onClick={() => setPickerForId(item.id)}
+                                >
+                                    <IconPreview previewClass={previewClass} color={item.color}
+                                                 title={item.icon || "circle"}/>
+                                </button>
+
                                 <Input
                                     type="text"
                                     value={item.text}
                                     onChange={(e) => onItemTextChange(item.id, e.target.value)}
-                                    onBlur={() => setTouched((prev) => ({
-                                        ...prev,
-                                        [item.id]: {...(prev[item.id] || {}), text: true}
-                                    }))}
-                                    placeholder="Name"
+                                    onBlur={() => markTouched(item.id, "text")}
+                                    placeholder="Label"
                                     style={{borderColor: showNameErr ? "red" : undefined}}
                                 />
 
                                 <input
                                     type="color"
                                     value={item.color}
-                                    onChange={(e) => updateMarker(item.id, "color", e.target.value)}
+                                    onChange={(e) => updateItem(item.id, "color", e.target.value)}
                                     aria-label="Color"
                                 />
 
@@ -924,46 +901,33 @@ function Legend() {
                                     type="text"
                                     value={item.icon}
                                     onChange={(e) => onItemIconChange(item.id, e.target.value)}
-                                    onBlur={() => setTouched((prev) => ({
-                                        ...prev,
-                                        [item.id]: {...(prev[item.id] || {}), icon: true}
-                                    }))}
-                                    placeholder="Icon (leave empty for circle, or e.g., bx-home / bxs-map / map)"
+                                    onBlur={() => markTouched(item.id, "icon")}
+                                    placeholder="Icon (empty = circle)"
                                     style={{borderColor: showIconErr ? "red" : undefined}}
                                 />
 
-
                                 <button
-                                    onClick={() => deleteMarker(item.id)}
-                                    title="Delete"
-                                    style={{
-                                        background: "none",
-                                        border: "none",
-                                        cursor: "pointer",
-                                        color: "red",
-                                        marginLeft: "auto"
-                                    }}
+                                    type="button"
+                                    className="legend-item-delete"
+                                    onClick={() => deleteItem(item.id)}
+                                    title="Delete entry"
                                 >
                                     <i className="bx bx-trash"/>
                                 </button>
                             </div>
 
                             {(showNameErr || showIconErr || (isIconTouched && suggestions.length > 0)) && (
-                                <div style={{width: "100%", marginLeft: 28}}>
+                                <div className="legend-item-messages">
                                     {showNameErr && (
-                                        <Text style={{color: "red", display: "block"}}>
-                                            <strong>Name error:</strong> {itemNameErr}
-                                        </Text>
+                                        <Text className="settings-error">{nameError(item.text)}</Text>
                                     )}
                                     {showIconErr && (
-                                        <Text style={{color: "red", display: "block"}}>
-                                            <strong>Icon error:</strong> {itemIconErr}
-                                        </Text>
+                                        <Text className="settings-error">{iconErrorMsg}</Text>
                                     )}
                                     {isIconTouched && (
                                         <SuggestionChips
                                             suggestions={suggestions}
-                                            onPick={(cls) => updateMarker(item.id, "icon", cls)}
+                                            onPick={(cls) => updateItem(item.id, "icon", cls)}
                                         />
                                     )}
                                 </div>
@@ -973,91 +937,38 @@ function Legend() {
                 })}
             </ReactSortable>
 
-            <Heading size="xsmall" marginTop={3}>Add new marker</Heading>
-            <Box className="add-marker-form" style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
-                <div className="flex">
-                    {/* Live preview for the add form: resolved icon or circle default */}
-                    <IconPreview previewClass={addIconState.previewClass} color={newMarker.color}
-                                 title={newMarker.icon || "circle"}/>
+            <Button icon="plus" variant="secondary" marginTop={1} onClick={addItem}>
+                Add entry
+            </Button>
+            </FormField>
 
-                    <Input
-                        type="text"
-                        value={newMarker.text}
-                        onChange={(e) => {
-                            setNewMarker({...newMarker, text: e.target.value});
-                            if (!addTouched.text) setAddTouched((t) => ({...t, text: true}));
-                        }}
-                        onBlur={() => setAddTouched((t) => ({...t, text: true}))}
-                        placeholder="Name"
-                        required
-                        style={{borderColor: addTouched.text && !!addNameErr ? "red" : undefined}}
-                    />
+            {items.length > 0 && (
+                <FormField label="Preview">
+                    <div className="info legend legend-preview">
+                        {items.map((item) => {
+                            const {previewClass} = resolveIcon(item.icon);
+                            return (
+                                <div key={item.id}>
+                                    <IconPreview previewClass={previewClass} color={item.color}
+                                                 title={item.icon || "circle"}/>
+                                    <span>{item.text || "…"}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </FormField>
+            )}
 
-                    <input
-                        type="color"
-                        value={newMarker.color}
-                        onChange={(e) => setNewMarker({...newMarker, color: e.target.value})}
-                        aria-label="Color"
-                    />
-
-                    <Input
-                        type="text"
-                        value={newMarker.icon}
-                        onChange={(e) => {
-                            setNewMarker({...newMarker, icon: e.target.value});
-                            if (!addTouched.icon) setAddTouched((t) => ({...t, icon: true}));
-                        }}
-                        onBlur={() => setAddTouched((t) => ({...t, icon: true}))}
-                        placeholder="Icon (leave empty for circle, or e.g., bx-home / bxs-map / map)"
-                        required
-                        style={{borderColor: addTouched.icon && !!addIconErr ? "red" : undefined}}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && canSubmit) addMarker();
-                        }}
-                    />
-                </div>
-
-                <Button onClick={addMarker} disabled={!canSubmit}
-                        style={{cursor: canSubmit ? "pointer" : "not-allowed"}}>
-                    Add Marker
-                </Button>
-
-                {/* Field-specific messages — only after touched */}
-                <div style={{width: "100%"}}>
-                    {addTouched.text && !!addNameErr && (
-                        <Text style={{color: "red", display: "block"}}>
-                            <strong>Name error:</strong> {addNameErr}
-                        </Text>
-                    )}
-                    {addTouched.icon && !!addIconErr && (
-                        <Text style={{color: "red", display: "block"}}>
-                            <strong>Icon error:</strong> {addIconErr}
-                        </Text>
-                    )}
-                    {/* Suggestions (only after icon touched) */}
-                    {addTouched.icon && (
-                        <SuggestionChips
-                            suggestions={addIconState.suggestions}
-                            onPick={(cls) => setNewMarker({...newMarker, icon: cls})}
-                        />
-                    )}
-                    {/* Submit-time fallback errors (e.g., bad color) */}
-                    {formError && (
-                        <Text style={{color: "red", display: "block", marginTop: 4}}>
-                            <strong>{formError}</strong>
-                        </Text>
-                    )}
-                </div>
-            </Box>
-
-            <p style={{marginTop: 8}}>
-                Default is a <em>circle</em> if the icon is empty. Bare names (e.g., <code>map</code>) preview the
-                <em> normal</em> icon when available and offer the <em>solid</em> variant as a one-click option.
-                Browse names at{" "}
-                <a href="https://v2.boxicons.com/" target="_blank" rel="noopener noreferrer">
-                    v2.boxicons.com
-                </a>.
-            </p>
+            {pickerForId && (
+                <IconPickerDialog
+                    onClose={() => setPickerForId(null)}
+                    onPick={(name) => {
+                        onItemIconChange(pickerForId, name);
+                        setPickerForId(null);
+                    }}
+                />
+            )}
+            </>)}
         </div>
     );
 }

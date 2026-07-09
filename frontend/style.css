@@ -157,10 +157,60 @@ select {
     background: #f1f1f1;
 }
 
-.add-marker-form {
-    display: flex;
+/* handle | icon | label | color | icon name | delete */
+.legend-item-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(80px, 1fr) auto minmax(110px, 1.2fr) auto;
+    gap: 8px;
     align-items: center;
-    margin-top: 10px;
+}
+
+.legend-item-handle {
+    cursor: grab;
+    color: #8a939e;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Clickable icon preview that opens the icon browser */
+.legend-item-iconbtn {
+    background: #fff;
+    border: 1px dashed #c5ccd3;
+    border-radius: 6px;
+    padding: 3px 2px 3px 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.legend-item-iconbtn:hover,
+.legend-item-iconbtn:focus {
+    border-color: #2d7ff9;
+    background: #eef5ff;
+}
+
+.legend-item-delete {
+    background: none;
+    border: none;
+    color: #c62828;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    font-size: 16px;
+}
+
+.legend-item-delete:hover {
+    opacity: 0.8;
+}
+
+.legend-item-messages {
+    margin: 4px 0 0 30px;
+}
+
+/* In-settings preview, styled like the legend on the map */
+.legend-preview {
+    display: inline-block;
 }
 
 /* ====================== Settings: about ====================== */
