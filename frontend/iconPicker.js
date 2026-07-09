@@ -29,6 +29,15 @@ function IconPickerDialog({onPick, onClose}) {
     const [stylePrefix, setStylePrefix] = React.useState('');
     const allIcons = React.useMemo(getAllBoxiconNames, []);
 
+    // Lock the page scroll behind the dialog; the icon grid scrolls on its own
+    React.useEffect(() => {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, []);
+
     const q = query.trim().toLowerCase().replace(/\s+/g, '-');
     const filtered = allIcons.filter((name) =>
         (!stylePrefix || name.startsWith(stylePrefix)) &&

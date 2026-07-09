@@ -279,6 +279,18 @@ function Settings({onDone, openMarkerConfig = false, onReset}) {
         }
     };
 
+    // A focused number input captures wheel events (scrolling changes its
+    // value instead of the page), which makes scrolling feel "stuck" until
+    // the cursor moves — blur it as soon as the user scrolls.
+    React.useEffect(() => {
+        const onWheel = () => {
+            const el = document.activeElement;
+            if (el && el.tagName === 'INPUT' && el.type === 'number') el.blur();
+        };
+        document.addEventListener('wheel', onWheel, {passive: true});
+        return () => document.removeEventListener('wheel', onWheel);
+    }, []);
+
     // Fresh install: default the marker style to a single icon/color/size so
     // the map can render as soon as table + location fields are picked.
     React.useEffect(() => {

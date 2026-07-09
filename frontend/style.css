@@ -181,6 +181,7 @@ select {
     margin-top: 8px;
     max-height: 50vh;
     overflow-y: auto;
+    overscroll-behavior: contain; /* don't chain-scroll into the page behind */
 }
 
 .icon-picker-item {
