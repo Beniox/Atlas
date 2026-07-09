@@ -31,7 +31,10 @@ import {boxiconsCssLoaded, escapeHTML, hasBoxiconGlyph, resolveBoxiconClass} fro
 
 // Build one legend row's HTML (icon + label); uses circle fallback if needed
 function legendItemHTML(item) {
-    const color = item?.color || "#000000";
+    // The color lands in a style attribute via innerHTML — only accept
+    // values the browser recognizes as a color, never arbitrary strings.
+    const rawColor = (item?.color || "").trim();
+    const color = rawColor && CSS.supports('color', rawColor) ? rawColor : "#000000";
     const className = resolveBoxiconClass(item?.icon);
 
     let iconHTML;
