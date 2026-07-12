@@ -5,7 +5,7 @@ import {
     Box,
     colorUtils,
 } from '@airtable/blocks/ui';
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import L from 'leaflet';
 import {createCustomIcon} from "./CustomIcon";
 import {GlobalConfigKeys} from "./settings";
@@ -16,6 +16,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import {loadCSSFromURLAsync} from '@airtable/blocks/ui';
 
+// The bundler doesn't resolve the image files referenced by the package's
+// CSS, so the fullscreen control style has to come from the CDN.
 loadCSSFromURLAsync("https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css").then();
 
 import "leaflet-gesture-handling"
@@ -25,63 +27,14 @@ import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
 
 // import 'leaflet-edgebuffer';
 
-
-// Safe text
-function escapeHTML(s) {
-    return String(s || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
-// --- Fast glyph check with memoization -------------------------------------
-const _glyphCache = new Map();
-
-// Does a Boxicons class (e.g., "bx-home"/"bxs-map") render a glyph?
-function hasBoxiconGlyph(iconClass) {
-    if (!iconClass) return false;
-    if (_glyphCache.has(iconClass)) return _glyphCache.get(iconClass);
-
-    const wrap = document.createElement("div");
-    wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;";
-    const i = document.createElement("i");
-    i.className = `bx ${iconClass}`;
-    i.style.cssText = "display:inline-block;font-size:24px;";
-    wrap.appendChild(i);
-    document.body.appendChild(wrap);
-    const cs = getComputedStyle(i, "::before");
-    const raw = cs && cs.content ? cs.content : "";
-    document.body.removeChild(wrap);
-    const content = raw.replace(/^['"]|['"]$/g, "");
-    const ok = !!content && content !== "normal" && content !== "none";
-    _glyphCache.set(iconClass, ok);
-    return ok;
-}
-
-// Resolve the best icon class to preview WITHOUT changing the stored value.
-// SOLID FIRST for bare names. Returns "bx bxs-..." / "bx bx-..." or null for fallback.
-function resolveBoxiconClass(raw) {
-    const s = String(raw || "").trim().toLowerCase().replace(/\s+/g, "");
-    if (!s) return null;
-
-    // Already prefixed?
-    if (s.startsWith("bx-") || s.startsWith("bxs-") || s.startsWith("bxl-")) {
-        return hasBoxiconGlyph(s) ? `bx ${s}` : null;
-    }
-
-    // Bare name: try SOLID first, then normal
-    const solid  = `bxs-${s}`;
-    const normal = `bx-${s}`;
-    if (hasBoxiconGlyph(solid))  return `bx ${solid}`;
-    if (hasBoxiconGlyph(normal)) return `bx ${normal}`;
-    return null;
-}
+import {boxiconsCssLoaded, escapeHTML, hasBoxiconGlyph, resolveBoxiconClass} from './iconUtils';
 
 // Build one legend row's HTML (icon + label); uses circle fallback if needed
 function legendItemHTML(item) {
-    const color = item?.color || "#000000";
+    // The color lands in a style attribute via innerHTML — only accept
+    // values the browser recognizes as a color, never arbitrary strings.
+    const rawColor = (item?.color || "").trim();
+    const color = rawColor && CSS.supports('color', rawColor) ? rawColor : "#000000";
     const className = resolveBoxiconClass(item?.icon);
 
     let iconHTML;
@@ -97,25 +50,25 @@ function legendItemHTML(item) {
     return `${iconHTML} ${label}`;
 }
 
-let atlasLegendCtrl = null;
-
 /**
  * Renders/removes the legend based on settings.
  * @param {L.Map} map
+ * @param {{current: L.Control|null}} legendCtrlRef - ref holding the current legend control
  * @param {boolean} showLegend
  * @param {"topleft"|"topright"|"bottomleft"|"bottomright"} legendPosition
  * @param {Array<{icon?:string,color?:string,text?:string}>} legendData
  */
-function renderAtlasLegend(map, showLegend, legendPosition, legendData) {
+function renderAtlasLegend(map, legendCtrlRef, showLegend, legendPosition, legendData) {
     // remove previous (if any)
-    if (atlasLegendCtrl) {
-        try { map.removeControl(atlasLegendCtrl); } catch {}
-        atlasLegendCtrl = null;
+    if (legendCtrlRef.current) {
+        try { map.removeControl(legendCtrlRef.current); } catch { /* already removed */ }
+        legendCtrlRef.current = null;
     }
-    if (!showLegend) return;
+    // Nothing to show for an enabled-but-empty legend
+    if (!showLegend || !(legendData || []).length) return;
 
-    atlasLegendCtrl = L.control({ position: legendPosition });
-    atlasLegendCtrl.onAdd = function () {
+    const ctrl = L.control({ position: legendPosition });
+    ctrl.onAdd = function () {
         const div = L.DomUtil.create("div", "atlas-legend info legend");
         div.setAttribute("aria-label", "Legend");
 
@@ -127,11 +80,76 @@ function renderAtlasLegend(map, showLegend, legendPosition, legendData) {
         L.DomEvent.disableScrollPropagation(div);
         return div;
     };
-    atlasLegendCtrl.addTo(map);
+    ctrl.addTo(map);
+    legendCtrlRef.current = ctrl;
 }
 
-// Example usage:
-// renderAtlasLegend(map, showLegend, legendPosition, legendData);
+/**
+ * Shows a warning control listing marker problems: records that could not be
+ * placed on the map and records rendered with a fallback icon.
+ * @param {L.Map} map
+ * @param {{current: L.Control|null}} ctrlRef - ref holding the current warning control
+ * @param {Array<{name:string,reason:string}>} invalidRecords
+ */
+function renderInvalidWarning(map, ctrlRef, invalidRecords) {
+    if (ctrlRef.current) {
+        try { map.removeControl(ctrlRef.current); } catch { /* already removed */ }
+        ctrlRef.current = null;
+    }
+    if (!invalidRecords.length) return;
+
+    const ctrl = L.control({position: 'topright'});
+    ctrl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'atlas-warning');
+        div.setAttribute('aria-label', 'Map issues');
+
+        const maxShown = 10;
+        const items = invalidRecords.slice(0, maxShown)
+            .map(({name, reason}) => `<li><b>${escapeHTML(name) || 'Unnamed'}</b> — ${escapeHTML(reason)}</li>`)
+            .join('');
+        const more = invalidRecords.length > maxShown
+            ? `<li>…and ${invalidRecords.length - maxShown} more</li>`
+            : '';
+        const plural = invalidRecords.length === 1 ? 'issue' : 'issues';
+        div.innerHTML = `
+            <details>
+                <summary><i class="bx bxs-error" aria-hidden="true"></i>${invalidRecords.length} map ${plural}</summary>
+                <ul>${items}${more}</ul>
+            </details>`;
+
+        // prevent scroll/clicks in the warning from affecting the map
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    ctrl.addTo(map);
+    ctrlRef.current = ctrl;
+}
+
+/**
+ * Centered "no markers" message so an empty map doesn't look broken.
+ * @param {L.Map} map
+ * @param {{current: L.Control|null}} ctrlRef
+ * @param {string} message - text to show, or '' to hide
+ */
+function renderEmptyState(map, ctrlRef, message) {
+    if (ctrlRef.current) {
+        try { map.removeControl(ctrlRef.current); } catch { /* already removed */ }
+        ctrlRef.current = null;
+    }
+    if (!message) return;
+
+    const ctrl = L.control({position: 'bottomleft'});
+    ctrl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'atlas-empty');
+        div.setAttribute('role', 'status');
+        div.innerHTML = `<i class="bx bx-map-alt" aria-hidden="true"></i> ${escapeHTML(message)}`;
+        L.DomEvent.disableClickPropagation(div);
+        return div;
+    };
+    ctrl.addTo(map);
+    ctrlRef.current = ctrl;
+}
 
 
 function Leaflet() {
@@ -155,6 +173,7 @@ function Leaflet() {
     const useSingleColor = globalConfig.get(GlobalConfigKeys.USE_SINGLE_COLOR);
     const useSingleIconSize = globalConfig.get(GlobalConfigKeys.USE_SINGLE_ICON_SIZE);
     const useGestureHandling = globalConfig.get(GlobalConfigKeys.GESTUREHANDLING) || false;
+    const showInvalidWarning = globalConfig.get(GlobalConfigKeys.SHOW_INVALID_WARNING) ?? true; // on unless disabled
     const useFixesStartLocation = globalConfig.get(GlobalConfigKeys.USE_FIXED_START_LOCATION);
     const startLatitude = globalConfig.get(GlobalConfigKeys.START_LATITUDE);
     const startLongitude = globalConfig.get(GlobalConfigKeys.START_LONGITUDE);
@@ -163,37 +182,52 @@ function Leaflet() {
 
     const table = base.getTableByIdIfExists(tableId); // should never happen that table is null
 
-    const opts = {
-        tableId,
-        latitudeFieldId,
-        longitudeFieldId,
-        nameFieldId,
-    }
+    // Only watch the fields the map actually uses, so unrelated cell edits
+    // don't rebuild the markers. Skip ids of fields that no longer exist —
+    // useRecords would throw on them.
+    const watchedFieldIds = [latitudeFieldId, longitudeFieldId, nameFieldId];
     if (!useSingleColor) {
-        opts.colorFieldId = colorFieldId;
+        watchedFieldIds.push(colorFieldId);
     }
     if (!useSingleIcon) {
-        opts.iconFieldId = iconFieldId;
+        watchedFieldIds.push(iconFieldId);
     }
     if (!useSingleIconSize) {
-        opts.iconSizeFieldId = iconSizeFieldId;
+        watchedFieldIds.push(iconSizeFieldId);
     }
+    const opts = {
+        fields: table
+            ? watchedFieldIds.filter((fieldId) => fieldId && table.getFieldByIdIfExists(fieldId))
+            : [],
+    };
 
     const firstRun = useRef(true);
 
+    // The icon stylesheet loads asynchronously; markers and legend rendered
+    // before it arrives fall back to the default pin/circle, so re-render
+    // them once it's ready.
+    const [iconsReady, setIconsReady] = useState(false);
+    useEffect(() => {
+        let cancelled = false;
+        boxiconsCssLoaded.then(() => {
+            if (!cancelled) setIconsReady(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const records = useRecords(table, opts);
 
     const mapRef = useRef(null);
     const clusterGroupRef = useRef(null);
+    const markerGroupRef = useRef(null); // non-clustered markers
+    const legendCtrlRef = useRef(null);
+    const fullscreenCtrlRef = useRef(null);
+    const invalidWarningCtrlRef = useRef(null);
+    const emptyStateCtrlRef = useRef(null);
 
     const legendJSON = globalConfig.get(GlobalConfigKeys.LEGEND) || '[]';
-    let legendData = "";
-    try {
-        legendData = JSON.parse(legendJSON);
-    } catch (e) {
-        console.error(e);
-    }
     const legendPosition = globalConfig.get(GlobalConfigKeys.LEGEND_POSITION) || 'bottomleft';
     const showLegend = globalConfig.get(GlobalConfigKeys.SHOW_LEGEND) || false;
 
@@ -201,8 +235,7 @@ function Leaflet() {
     useEffect(() => {
         // Initialize the map on first render
         const map = L.map('map', {
-            fullscreenControl: allowFullScreen,
-            gestureHandling: useGestureHandling
+            gestureHandling: false, // toggled by its own effect below
         }).setView([51.505, -0.09], 13); // Default center
 
         // Add a tile layer
@@ -210,53 +243,105 @@ function Leaflet() {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
-        // Initialize a MarkerClusterGroup
-        const markerClusterGroup = L.markerClusterGroup();
-        clusterGroupRef.current = markerClusterGroup;
-
-        // Add the cluster group to the map
-        map.addLayer(markerClusterGroup);
-
-
-        if (showLegend) {
-            try {
-                renderAtlasLegend(map, true, legendPosition, legendData);
-            } catch (e) {
-                console.error(e);
-            }
-        } else {
-            renderAtlasLegend(map, false); // ensures any old legend is removed
-        }
-
-        // Prevents users from getting trapped on the map when scrolling a long page.
-        if (useGestureHandling) {
-            map.on('fullscreenchange', function () {
-                if (map.isFullscreen()) {
-                    map.gestureHandling.disable();
-                } else {
-                    map.gestureHandling.enable();
-                }
-            });
-        }
-
+        // One group for clustered markers, one for plain markers
+        clusterGroupRef.current = L.markerClusterGroup();
+        markerGroupRef.current = L.featureGroup();
+        map.addLayer(clusterGroupRef.current);
+        map.addLayer(markerGroupRef.current);
 
         mapRef.current = map;
         return () => {
             map.remove();
+            mapRef.current = null;
         };
     }, []);
 
+    // Fullscreen control (added/removed live when the setting changes)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !allowFullScreen) return;
+        const ctrl = L.control.fullscreen();
+        map.addControl(ctrl);
+        fullscreenCtrlRef.current = ctrl;
+        return () => {
+            map.removeControl(ctrl);
+            fullscreenCtrlRef.current = null;
+        };
+    }, [allowFullScreen]);
+
+    // Gesture handling (toggled live when the setting changes)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !map.gestureHandling) return;
+
+        if (useGestureHandling) {
+            map.gestureHandling.enable();
+        } else {
+            map.gestureHandling.disable();
+        }
+
+        // Prevents users from getting trapped on the map when scrolling a long page,
+        // while still allowing normal scroll-zoom in fullscreen.
+        const onFullscreenChange = () => {
+            if (!useGestureHandling) return;
+            if (map.isFullscreen()) {
+                map.gestureHandling.disable();
+            } else {
+                map.gestureHandling.enable();
+            }
+        };
+        map.on('fullscreenchange', onFullscreenChange);
+        return () => {
+            map.off('fullscreenchange', onFullscreenChange);
+        };
+    }, [useGestureHandling]);
+
+    // Legend (re-rendered live when its settings change)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+        let legendData = [];
+        try {
+            legendData = JSON.parse(legendJSON);
+        } catch (e) {
+            console.error(e);
+        }
+        try {
+            renderAtlasLegend(map, legendCtrlRef, showLegend, legendPosition, legendData);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [showLegend, legendPosition, legendJSON, iconsReady]);
+
     useEffect(() => {
 
-
-        // Clear old markers
-        // markersRef.current.forEach(marker => marker.remove());
-        // markersRef.current = [];
-
-        if (!clusterGroupRef.current) return;
-        // Clear old clusters
+        if (!clusterGroupRef.current || !markerGroupRef.current) return;
+        // Clear old markers from both groups
         clusterGroupRef.current.clearLayers();
+        markerGroupRef.current.clearLayers();
 
+
+        // Marker problems shown in the warning control: records that can't be
+        // placed, or that render with the fallback icon
+        const invalidRecords = [];
+
+        // An invalid single icon affects every marker — warn once
+        if (useSingleIcon && !resolveBoxiconClass(singleIconName)) {
+            invalidRecords.push({
+                name: 'All markers',
+                reason: `unknown icon "${singleIconName}" (default pin shown)`,
+            });
+        }
+
+        // A single size of 0 hides every marker — almost always a mistake, warn once
+        if (useSingleIconSize && Number(singleIconSize) === 0) {
+            invalidRecords.push({
+                name: 'All markers',
+                reason: 'marker size is 0, so nothing is shown',
+            });
+        }
+
+        let placedCount = 0;
 
         // Add new markers if fields are set
         if (records && latitudeFieldId && longitudeFieldId) {
@@ -265,17 +350,23 @@ function Leaflet() {
                     const lat = record.getCellValue(latitudeFieldId);
                     const lon = record.getCellValue(longitudeFieldId);
 
-                    const name = record.getCellValue(nameFieldId);
+                    const name = record.getCellValueAsString(nameFieldId);
 
                     // Determine icon
                     const iconName = useSingleIcon ? singleIconName : record.getCellValue(iconFieldId) || 'map';
 
-                    // Determine icon size
+                    // Determine icon size (0 hides the marker; empty/invalid defaults to 32)
                     let iconSize = useSingleIconSize ? singleIconSize : record.getCellValue(iconSizeFieldId);
-                    if (iconSize == null) iconSize = 32;
+                    if (iconSize == null || iconSize === '') {
+                        iconSize = 32;
+                    } else {
+                        iconSize = Number(iconSize);
+                        if (!Number.isFinite(iconSize)) iconSize = 32;
+                    }
 
                     // Determine color
                     let color = 'black';
+                    let colorInvalid = false;
                     if (useSingleColor) {
                         if (CSS.supports('color', singleColor)) {
                             color = singleColor;
@@ -287,30 +378,71 @@ function Leaflet() {
                                 color = colorUtils.getHexForColor(airtableColor.color);
                             } else if (CSS.supports('color', airtableColor)) {
                                 color = airtableColor;
+                            } else {
+                                colorInvalid = true; // has a value, but not a usable color
                             }
                         }
                     }
 
 
-                    if (isValidLocation(lat, lon) && iconSize > 0) {
-                        // Create a custom Leaflet divIcon
-                        const customIcon = createCustomIcon(iconName, color, iconSize);
+                    if (iconSize > 0) { // size 0 hides the marker on purpose
+                        if (isValidLocation(lat, lon)) {
+                            if (!useSingleIcon && !resolveBoxiconClass(iconName)) {
+                                invalidRecords.push({
+                                    name,
+                                    reason: `unknown icon "${iconName}" (default pin shown)`,
+                                });
+                            }
+                            if (colorInvalid) {
+                                invalidRecords.push({
+                                    name,
+                                    reason: 'unknown color (black shown)',
+                                });
+                            }
 
-                        const marker = L.marker([lat, lon], {icon: customIcon});
-                        marker.bindPopup(`<b>${name || 'No name'}</b>`);
-                        // clusterGroupRef.current.push(marker);
-                        if (useClustering) {
-                            clusterGroupRef.current.addLayer(marker);
+                            // Create a custom Leaflet divIcon
+                            const customIcon = createCustomIcon(iconName, color, iconSize);
+
+                            const marker = L.marker([lat, lon], {icon: customIcon});
+                            marker.bindPopup(`<b>${escapeHTML(name) || 'No name'}</b>`);
+                            if (useClustering) {
+                                clusterGroupRef.current.addLayer(marker);
+                            } else {
+                                markerGroupRef.current.addLayer(marker);
+                            }
+                            placedCount++;
                         } else {
-                            mapRef.current.addLayer(marker);
+                            invalidRecords.push({
+                                name,
+                                reason: lat == null && lon == null
+                                    ? 'missing coordinates'
+                                    : `invalid coordinates (${lat}, ${lon})`,
+                            });
                         }
                     }
                 } catch (e) {
                     console.error(e);
+                    invalidRecords.push({
+                        name: record.name,
+                        reason: 'could not be read (was a configured field deleted?)',
+                    });
                 }
             });
         }
 
+
+        if (mapRef.current) {
+            renderInvalidWarning(mapRef.current, invalidWarningCtrlRef, showInvalidWarning ? invalidRecords : []);
+
+            // Distinguish "no data" from "misconfigured" so an empty map isn't mistaken for broken
+            let emptyMessage = '';
+            if (placedCount === 0) {
+                emptyMessage = !records || records.length === 0
+                    ? 'No records to show. Add rows to your table, or check your view’s filters.'
+                    : 'No records could be placed on the map — see the warning for details.';
+            }
+            renderEmptyState(mapRef.current, emptyStateCtrlRef, emptyMessage);
+        }
 
         if (firstRun.current) {
             goToHome();
@@ -332,29 +464,22 @@ function Leaflet() {
         useSingleIconSize,
         singleIconSize,
         useClustering,
+        showInvalidWarning,
+        iconsReady,
     ]);
 
     function goToHome() {
-
         if (useFixesStartLocation) {
-            mapRef.current.setView([startLatitude || 0, startLongitude || 0], startZoom || 8);
+            mapRef.current.setView(
+                [Number(startLatitude) || 0, Number(startLongitude) || 0],
+                Number(startZoom) || 8
+            );
         } else {
-
-
-            // 3) Now that *all* markers are on the map, grab the bounds…
-            const bounds = mapRef.current.getBounds();
+            // Fit the view to the markers (not the current viewport)
+            const group = useClustering ? clusterGroupRef.current : markerGroupRef.current;
+            const bounds = group.getBounds();
             if (bounds.isValid()) {
-                // 4a) Fit to show all markers (with 10% padding)
                 mapRef.current.fitBounds(bounds.pad(0.1), {animate: false});
-
-                // 4b) Then recenter on *your* “primary” marker
-                //    (replace this with whatever record you want centered)
-                const primary = records[0];
-                const primaryLatLng = [
-                    primary.getCellValue(latitudeFieldId),
-                    primary.getCellValue(longitudeFieldId),
-                ];
-                mapRef.current.setView(primaryLatLng, mapRef.current.getZoom());
             }
         }
     }
@@ -376,7 +501,7 @@ function Leaflet() {
  * @returns {boolean}
  */
 function isValidLocation(lat, lon) {
-    const valid = (
+    return (
         typeof lat === 'number' &&
         typeof lon === 'number' &&
         lat >= -90 &&
@@ -384,10 +509,6 @@ function isValidLocation(lat, lon) {
         lon >= -180 &&
         lon <= 180
     );
-    if (!valid) {
-        console.log(`Invalid location: ${lat}, ${lon}`);
-    }
-    return valid;
 }
 
 
