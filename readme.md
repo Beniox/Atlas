@@ -88,6 +88,17 @@ Screenshots and steps to reproduce help a lot.
 
 ## Installation
 
+Atlas is available in the Airtable extension marketplace:
+
+1. Open your Airtable base and click "Extensions" in the top right corner.
+2. Click "Add an extension".
+3. Search for "Atlas" in the marketplace and click "Add".
+
+That's it – no setup or coding required.
+
+<details>
+<summary><strong>Install from source (for developers)</strong></summary>
+
 ![How to add this block to your base](media/installing.png)
 
 You need [Node.js](https://nodejs.org/en/download) and [git](https://git-scm.com/).
@@ -102,6 +113,8 @@ You need [Node.js](https://nodejs.org/en/download) and [git](https://git-scm.com
 8. Inside the created folder, run `block release`.
 
 The extension should now be available in your base. If something fails, double-check the API token and configuration.
+
+</details>
 
 ## Built with
 
