@@ -90,6 +90,10 @@ Screenshots and steps to reproduce help a lot.
 
 Atlas is available in the Airtable extension marketplace:
 
+https://airtable.com/marketplace/blkc8xlrx7zHggpe5/atlas
+
+or:
+
 1. Open your Airtable base and click "Extensions" in the top right corner.
 2. Click "Add an extension".
 3. Search for "Atlas" in the marketplace and click "Add".
